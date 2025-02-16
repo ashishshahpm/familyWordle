@@ -102,18 +102,18 @@ document.addEventListener("DOMContentLoaded", () => {
       // First pass: check for exact matches (green)
       guessLetters.forEach((letter, index) => {
           if (letter === targetLetters[index]) {
-              result.push({ char: letter, color: 'green' });
+              result.push({ char: letter.toUpperCase(), color: 'green' });
               targetLetters[index] = null; // Mark the letter as used
               guessLetters[index] = null; // Avoid checking it again
           } else {
-              result.push({ char: letter, color: 'gray' }); // Default to gray
+              result.push({ char: letter.toUpperCase(), color: 'gray' }); // Default to gray
           }
       });
 
       // Second pass: check for partial matches (orange)
       guessLetters.forEach((letter, index) => {
           if (letter && targetLetters.includes(letter)) {
-              result[index] = { char: letter, color: 'orange' };
+              result[index] = { char: letter.toUpperCase(), color: 'orange' };
               targetLetters[targetLetters.indexOf(letter)] = null; // Mark as used
           }
       });
