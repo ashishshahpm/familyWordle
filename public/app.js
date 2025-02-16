@@ -26,35 +26,76 @@ const userInput = document.getElementById("user-input");
 const submitGuessButton = document.getElementById("submit-guess");
 const feedback = document.getElementById("feedback");
 
-// Check if the elements exist
-if (!userInput || !submitGuessButton || !feedback) {
-    console.error("Missing DOM elements!");
-    return;
-}
-
-// Handle guess submission
+/// Listen for the button click
 submitGuessButton.addEventListener("click", () => {
-    const guess = userInput.value.toLowerCase();
-    if (guess.length === 5) {
-        submitGuess(guess);
-    } else {
-        feedback.textContent = "Please enter a 5-letter word.";
-    }
+  console.log("Submit button clicked!");
+  const guess = userInput.value.toLowerCase();
+  if (guess.length === 5) {
+      submitGuess(guess);
+  } else {
+      feedback.textContent = "Please enter a 5-letter word.";
+  }
 });
 
-// Submit a guess and check it
+// Handle the guess submission
 function submitGuess(guess) {
-    if (attempts < maxAttempts) {
-        attempts++;
-        if (guess === targetWord) {
-            feedback.textContent = "You win!";
-        } else {
-            if (attempts === maxAttempts) {
-                feedback.textContent = `Game over! The word was: ${targetWord}`;
-            } else {
-                feedback.textContent = `Incorrect! You have ${maxAttempts - attempts} attempts left.`;
-            }
-        }
-    }
+  console.log(`Guess submitted: ${guess}`);
+
+  if (attempts < maxAttempts) {
+      attempts++;
+      let result = checkGuess(guess);
+      console.log("Result:", result); 
+
+      // Clear previous feedback
+      feedback.innerHTML = '';
+
+      // Display each letter in the result with the correct color
+      result.forEach(letter => {
+          const span = document.createElement('span');
+          span.textContent = letter.char;
+          span.style.color = letter.color;
+          span.style.marginRight = "5px"; // Optional: add spacing between letters
+          feedback.appendChild(span);
+      });
+
+      // Check for win condition or game over
+      if (guess === targetWord) {
+          feedback.textContent = "You win!";
+      } else {
+          if (attempts === maxAttempts) {
+              feedback.textContent = `Game over! The word was: ${targetWord}`;
+          } else {
+              feedback.textContent += ` (Attempt ${attempts}/${maxAttempts})`;
+          }
+      }
+  }
+}
+
+// Check the guess and return feedback with colors
+function checkGuess(guess) {
+  let result = [];
+  let targetLetters = [...targetWord];
+  let guessLetters = [...guess];
+
+  // First pass: check for exact matches (green)
+  guessLetters.forEach((letter, index) => {
+      if (letter === targetLetters[index]) {
+          result.push({ char: letter, color: 'green' });
+          targetLetters[index] = null; // Mark the letter as used
+          guessLetters[index] = null; // Avoid checking it again
+      } else {
+          result.push({ char: letter, color: 'gray' }); // Default to gray
+      }
+  });
+
+  // Second pass: check for partial matches (orange)
+  guessLetters.forEach((letter, index) => {
+      if (letter && targetLetters.includes(letter)) {
+          result[index] = { char: letter, color: 'orange' };
+          targetLetters[targetLetters.indexOf(letter)] = null; // Mark the letter as used
+      }
+  });
+
+  return result;
 }
 });
