@@ -7,19 +7,35 @@
     <link rel="icon" href="/favicon.ico" />  <!-- Link to favicon -->
     <style>
         #feedback {
-            display: inline-block;
-            font-size: 20px; /* Adjust size if needed */
+            display: block; /* Ensure feedback area is visible */
+            font-size: 20px;
         }
-
+    
         #feedback span {
             padding: 5px;
-            display: inline-block; /* Ensure letters appear inline */
-            margin-right: 5px; /* Optional: space between letters */
-            font-size: 20px; /* Adjust letter size */
-            font-weight: bold; /* Optional: make letters bold */
-            text-align: center; /* Ensure proper centering of text */
+            display: inline-block;
+            margin-right: 5px;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
         }
-    </style>
+    
+        /* CSS classes for color feedback */
+        .green {
+            background-color: green;
+            color: white;
+        }
+    
+        .orange {
+            background-color: orange;
+            color: white;
+        }
+    
+        .gray {
+            background-color: gray;
+            color: white;
+        }
+    </style>    
 </head>
 <body>
 
@@ -27,7 +43,12 @@
     <p>Guess the 5-letter word!</p>
     <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess" />
     <button id="submit-guess">Submit Guess</button>
-    <p id="feedback"></p>
+    <p id="feedback">
+        <span class="green">A</span>
+        <span class="orange">R</span>
+        <span class="gray">I</span>
+    </p>
+    <div id="guesses-container"></div>
 
     <!-- Firebase SDK (v8 compatibility version) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
