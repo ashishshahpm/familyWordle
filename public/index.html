@@ -35,6 +35,13 @@
             background-color: gray;
             color: white;
         }
+
+        #guesses-container .guess span {
+            margin-right: 10px;
+            display: inline-block;
+            font-size: 48px; /*  Set a fixed pixel size */
+        }
+
     </style>    
 </head>
 <body>
@@ -44,9 +51,6 @@
     <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess" />
     <button id="submit-guess">Submit Guess</button>
     <p id="feedback">
-        <span class="green">A</span>
-        <span class="orange">R</span>
-        <span class="gray">I</span>
     </p>
     <div id="guesses-container"></div>
 
