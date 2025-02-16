@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle-like Game</title>
+</head>
+<body>
+
+    <h1>Wordle-like Game</h1>
+    <p>Guess the 5-letter word!</p>
+    <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess" />
+    <button id="submit-guess">Submit Guess</button>
+    <p id="feedback"></p>
+
+    <!-- Firebase SDK (v8 compatibility version) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Your app.js script -->
+    <script src="app.js"></script>
+</body>
+</html>
