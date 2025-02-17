@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore(); // Get a firestore instance
   console.log("✅ Firebase Initialized");
 
   // Game setup
@@ -84,10 +85,13 @@ document.addEventListener("DOMContentLoaded", () => {
           // If the guess is correct
           if (guess === targetWord) {
               feedback.textContent = "You win!";
+              saveGameResults(1, guessesContainer)
           } else {
               //feedback.textContent += ` (Attempt ${attempts}/${maxAttempts})`; // REMOVE THIS - no longer needed
               if (attempts === maxAttempts) {
                   feedback.textContent = `Game over! The word was: ${targetWord}`;
+                  saveGameResults(0, guessesContainer)
+
               }
           }
       }
@@ -119,5 +123,48 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       return result;
+  }
+
+  
+  async function saveGameResults(isSuccessful) {
+    const guesses = [];
+    // Get all guess divs
+    const guessDivs = document.querySelectorAll('#guesses-container .guess');
+
+    guessDivs.forEach(guessDiv => {
+        const guessLetters = [];
+        // Get all spans within the current guess div
+        const spans = guessDiv.querySelectorAll('span');
+        spans.forEach(span => {
+            // Extract the letter and its color class
+            const letter = span.textContent;
+            let color = 'gray'; // Default to gray
+            if (span.classList.contains('green')) {
+                color = 'green';
+            } else if (span.classList.contains('orange')) {
+                color = 'orange';
+            }
+            guessLetters.push({ char: letter, color: color });
+        });
+        // reconstruct the guess word string
+        const guessWord = guessLetters.map(l => l.char).join('');
+        guesses.push({guess: guessWord, result: guessLetters});
+    });
+
+    const gameResult = {
+        date: new Date().toISOString(),
+        target: targetWord,
+        turns: isSuccessful ? attempts : "failed",
+        guesses: guesses
+    };
+
+    console.log(gameResult);
+
+    try {
+      const docRef = await db.collection('games').add(gameResult);
+      console.log('Game results saved successfully with ID:', docRef.id);
+    } catch (error) {
+      console.error('Error saving game results:', error);
+    }
   }
 });
