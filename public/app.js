@@ -131,13 +131,20 @@ document.addEventListener("DOMContentLoaded", () => {
   restartButton.style.display = "none";
 
 
-  submitGuessButton.addEventListener("click", () => {
-      const guess = userInput.value.toLowerCase();
-      if (guess.length === 5) {
-          submitGuess(guess);
-      } else {
-          feedback.textContent = "Please enter a 5-letter word.";
-      }
+  submitGuessButton.addEventListener("click", async () => { // Make the handler async
+    const guess = userInput.value.toLowerCase();
+    if (guess.length === 5) {
+        const valid = await isValidWord(guess); // Await the API call
+        if (valid) {
+            submitGuess(guess);
+        } else {
+            feedback.textContent = "Not a valid word.";
+            userInput.value = ""; //clear input
+        }
+    } else {
+        feedback.textContent = "Please enter a 5-letter word.";
+         userInput.value = ""; //clear input
+    }
   });
 
   function submitGuess(guess) {
@@ -243,5 +250,25 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error("Error saving game results:", error);
       }
 
+  }
+
+  async function isValidWord(word) {
+    try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+        if (response.ok) { // 200 OK
+            const data = await response.json();
+            // The API returns an array.  If the word exists, the array
+            // will have at least one element.
+            return data.length > 0;
+        } else if (response.status === 404) { // Word not found
+            return false;
+        } else {
+            console.error("Dictionary API error:", response.status);
+            return false; // Treat API errors as invalid words (for simplicity)
+        }
+    } catch (error) {
+        console.error("Network error:", error);
+        return false; // Treat network errors as invalid
+    }
   }
 });
