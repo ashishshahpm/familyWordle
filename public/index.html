@@ -5,135 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Wordle</title>
     <link rel="icon" href="/favicon.ico" />
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        /* Style for the game container */
-        #game-container {
-            display: none; /* Initially hidden */
-        }
-
-        #user-input {
-            display: block;
-            margin: 20px auto;
-            padding: 10px;
-            font-size: 18px;
-            width: 200px;
-        }
-
-        #submit-guess {
-            display: block;
-            margin: 10px auto;
-            padding: 10px 15px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-         #restart-button {
-            display: none; /* Initially hidden */
-            margin: 10px auto;
-            padding: 10px 15px;
-            font-size: 16px;
-            background-color: #008CBA; /* Blue button */
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-
-        #feedback {
-            display: block;
-            font-size: 20px;
-            text-align: center;
-            margin-top: 20px;
-            min-height: 30px;
-        }
-
-        #guesses-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-
-        #guesses-container .guess {
-            display: flex;
-            gap: 5px;
-        }
-
-        #guesses-container .guess span {
-            flex: 1;
-            font-size: 3em;
-            text-align: center;
-            border: 1px solid black;
-            padding: 5px;
-              box-sizing: border-box; /* Include padding and border in the element's total width and height */
-            width: 60px; /* Or any other fixed width you prefer */
-            height: 60px; /* Ensure spans are square*/
-        }
-
-        .green {
-            background-color: green;
-            color: white;
-        }
-
-        .orange {
-            background-color: orange;
-            color: white;
-        }
-
-        .gray {
-            background-color: gray;
-            color: white;
-        }
-
-        #sign-in-button {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 15px;
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-
-        #sign-out-button {
-            display: none;
-            margin: 20px auto;
-            padding: 10px 15px;
-            background-color: #db4437;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-
-        #user-info {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
+    <link rel="stylesheet" href="style.css">  </head>
 <body>
 
     <h1>Family Wordle</h1>
     <p style="text-align: center;">Guess the 5-letter word!</p>
 
     <div id="user-info">
-        <img id="user-photo" src="" alt="User Photo" style="width: 40px; height: 40px; border-radius: 50%; display: none;">
+        <img id="user-photo" src="" alt="User Photo">
         <span id="user-name"></span>
         <button id="sign-out-button">Sign Out</button>
     </div>
@@ -143,13 +22,12 @@
         <div id="guesses-container"></div>
         <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess">
         <button id="submit-guess">Submit Guess</button>
-         <button id="restart-button">Restart Game</button>
+        <button id="restart-button">Restart Game</button>
         <div id="feedback"></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="app.js"></script>
-</body>
+    <script src="app.js"></script> </body>
 </html>
