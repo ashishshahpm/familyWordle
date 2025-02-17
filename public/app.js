@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🔥 Initializing Firebase...");
 
-  // Your Firebase configuration
+  // Firebase configuration
   const firebaseConfig = {
-      apiKey: "AIzaSyAF8N4oOo2Kv0W5rjO5Af8Dk15YwxR_p50",
+     apiKey: "AIzaSyAF8N4oOo2Kv0W5rjO5Af8Dk15YwxR_p50",
       authDomain: "familywordle-c8402.firebaseapp.com",
       projectId: "familywordle-c8402",
       storageBucket: "familywordle-c8402.firebasestorage.app",
@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const auth = firebase.auth();
   console.log("✅ Firebase Initialized");
 
-  // Game setup
-  const targetWord = "apple";
+  // Game setup (moved outside of any function for persistence)
+  let targetWord = "apple"; // Default target word
   let attempts = 0;
   const maxAttempts = 6;
 
@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const feedback = document.getElementById("feedback");
   const guessesContainer = document.getElementById("guesses-container");
   const gameContainer = document.getElementById("game-container");
+  const restartButton = document.getElementById("restart-button"); // Get restart button
+
 
   // --- Google Authentication Setup ---
 
@@ -81,6 +83,11 @@ document.addEventListener("DOMContentLoaded", () => {
           // ENABLE INPUT AND BUTTON
           userInput.disabled = false;
           submitGuessButton.disabled = false;
+          restartButton.style.display = "block"; //show restart
+
+          // Restart the game when a user signs in
+          restartGame();
+
 
       } else {
           // User is signed out.
@@ -94,14 +101,34 @@ document.addEventListener("DOMContentLoaded", () => {
           // DISABLE INPUT AND BUTTON
           userInput.disabled = true;
           submitGuessButton.disabled = true;
+           restartButton.style.display = "none"; //hide restart
+
       }
   });
 
+    // --- Restart Game Function ---
+  function restartGame() {
+      attempts = 0;                      // Reset attempts
+      userInput.value = "";              // Clear input field
+      feedback.textContent = "";          // Clear feedback
+      guessesContainer.innerHTML = "";   // Clear previous guesses
+      userInput.disabled = false;       // Re-enable input
+      submitGuessButton.disabled = false; // Re-enable button
+
+      // Get a *new* random word (if you want a new word each time)
+      //  targetWord = getRandomWord(); // You'd need a function to do this
+  }
+
+  //Restart Button
+  restartButton.addEventListener('click', restartGame);
+
+
   // --- Game Logic ---
 
-  // Disable input/button on initial load (good practice)
+  // Disable input/button on initial load
   userInput.disabled = true;
   submitGuessButton.disabled = true;
+  restartButton.style.display = "none";
 
 
   submitGuessButton.addEventListener("click", () => {
@@ -129,46 +156,49 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           guessesContainer.appendChild(guessDiv);
+        
+          // Clear the input field *after* processing the guess
+          userInput.value = "";
 
-          // Check for win/loss *AFTER* adding the guess to the UI
           if (guess === targetWord) {
               feedback.textContent = "You win!";
-              endGame(); // Call endGame function on win
+              endGame();
               saveGameResults(true);
           } else if (attempts === maxAttempts) {
               feedback.textContent = `Game over! The word was: ${targetWord}`;
-              endGame(); // Call endGame function on loss
+              endGame();
               saveGameResults(false);
           }
       }
   }
 
   function checkGuess(guess) {
-      let result = [];
-      let targetLetters = [...targetWord];
-      let guessLetters = [...guess];
+    let result = [];
+    let targetLetters = [...targetWord];
+    let guessLetters = [...guess];
 
-      guessLetters.forEach((letter, index) => {
-          if (letter === targetLetters[index]) {
-              result.push({ char: letter.toUpperCase(), color: 'green' });
-              targetLetters[index] = null;
-              guessLetters[index] = null;
-          } else {
-              result.push({ char: letter.toUpperCase(), color: 'gray' });
-          }
-      });
+    // First pass: check for exact matches (green)
+    guessLetters.forEach((letter, index) => {
+        if (letter === targetLetters[index]) {
+            result.push({ char: letter.toUpperCase(), color: 'green' });
+            targetLetters[index] = null; // Mark the letter as used
+            guessLetters[index] = null; // Avoid checking it again
+        } else {
+            result.push({ char: letter.toUpperCase(), color: 'gray' }); // Default to gray
+        }
+    });
 
-      guessLetters.forEach((letter, index) => {
-          if (letter && targetLetters.includes(letter)) {
-              result[index] = { char: letter.toUpperCase(), color: 'orange' };
-              targetLetters[targetLetters.indexOf(letter)] = null;
-          }
-      });
+    // Second pass: check for partial matches (orange)
+    guessLetters.forEach((letter, index) => {
+        if (letter && targetLetters.includes(letter)) {
+            result[index] = { char: letter.toUpperCase(), color: 'orange' };
+            targetLetters[targetLetters.indexOf(letter)] = null; // Mark as used
+        }
+    });
 
-      return result;
-  }
+    return result;
+}
 
-  // --- End Game Function ---
   function endGame() {
       userInput.disabled = true;
       submitGuessButton.disabled = true;
@@ -180,7 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
           console.warn("No user signed in. Not saving results.");
           return;
       }
-
       const guesses = [];
       const guessDivs = document.querySelectorAll('#guesses-container .guess');
         guessDivs.forEach(guessDiv => {
@@ -200,7 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
           guesses.push({guess: guessWord, result: guessLetters});
       });
 
-
       const gameResult = {
           userId: user.uid,
           date: new Date().toISOString(),
@@ -208,12 +236,12 @@ document.addEventListener("DOMContentLoaded", () => {
           turns: isSuccessful ? attempts : "failed",
           guesses: guesses,
       };
-
-      try {
+       try {
           const docRef = await db.collection('games').add(gameResult);
           console.log("Game results saved with ID:", docRef.id);
       } catch (error) {
           console.error("Error saving game results:", error);
       }
+
   }
 });

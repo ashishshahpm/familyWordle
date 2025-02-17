@@ -38,6 +38,18 @@
             cursor: pointer;
             border-radius: 4px;
         }
+         #restart-button {
+            display: none; /* Initially hidden */
+            margin: 10px auto;
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #008CBA; /* Blue button */
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
 
         #feedback {
             display: block;
@@ -60,15 +72,14 @@
         }
 
         #guesses-container .guess span {
-            width: 50px; /*set a fixed width*/
-            /*flex: 1*/;
-            font-size: 48px;
+            flex: 1;
+            font-size: 3em;
             text-align: center;
-            margin-bottom: 20px;
-            margin-right: 20px;
             border: 1px solid black;
             padding: 5px;
-            display: inline-block; /*makes width work on spans*/
+              box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            width: 60px; /* Or any other fixed width you prefer */
+            height: 60px; /* Ensure spans are square*/
         }
 
         .green {
@@ -99,7 +110,7 @@
         }
 
         #sign-out-button {
-            display: none; /* Hidden by default */
+            display: none;
             margin: 20px auto;
             padding: 10px 15px;
             background-color: #db4437;
@@ -132,6 +143,7 @@
         <div id="guesses-container"></div>
         <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess">
         <button id="submit-guess">Submit Guess</button>
+         <button id="restart-button">Restart Game</button>
         <div id="feedback"></div>
     </div>
 
