@@ -1,16 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🔥 Initializing Firebase...");
 
-  // Firebase configuration
-  const firebaseConfig = {
-     apiKey: "AIzaSyAF8N4oOo2Kv0W5rjO5Af8Dk15YwxR_p50",
-      authDomain: "familywordle-c8402.firebaseapp.com",
-      projectId: "familywordle-c8402",
-      storageBucket: "familywordle-c8402.firebasestorage.app",
-      messagingSenderId: "95103576558",
-      appId: "1:95103576558:web:dc26e183b8b2f41b5fc6ff",
-      measurementId: "G-C2NH8WDMEX"
-  };
+// Firebase configuration
+const firebaseConfig = {
+   apiKey: "AIzaSyAF8N4oOo2Kv0W5rjO5Af8Dk15YwxR_p50",
+    authDomain: "familywordle-c8402.firebaseapp.com",
+    projectId: "familywordle-c8402",
+    storageBucket: "familywordle-c8402.firebasestorage.app",
+    messagingSenderId: "95103576558",
+    appId: "1:95103576558:web:dc26e183b8b2f41b5fc6ff",
+    measurementId: "G-C2NH8WDMEX"
+};
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
@@ -18,26 +18,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const auth = firebase.auth();
   console.log("✅ Firebase Initialized");
 
-  // Game setup (moved outside of any function for persistence)
-  let targetWord = "apple"; // Default target word
+  // Game setup
+  let targetWord = "apple"; // Default
   let attempts = 0;
   const maxAttempts = 6;
 
-  // DOM elements for auth
+  // DOM elements
   const signInButton = document.getElementById('sign-in-button');
   const signOutButton = document.getElementById('sign-out-button');
-  const userInfoDiv = document.getElementById('user-info');
-  const userPhotoImg = document.getElementById('user-photo');
-  const userNameSpan = document.getElementById('user-name');
-
-  // DOM elements for game
+  const userInfoDiv = document.getElementById('user-info-sidebar');
+  const userPhotoImg = document.getElementById('user-photo-sidebar');
+  const userNameSpan = document.getElementById('user-name-sidebar');
   const userInput = document.getElementById("user-input");
   const submitGuessButton = document.getElementById("submit-guess");
   const feedback = document.getElementById("feedback");
   const guessesContainer = document.getElementById("guesses-container");
   const gameContainer = document.getElementById("game-container");
-  const restartButton = document.getElementById("restart-button"); // Get restart button
-
+  const restartButton = document.getElementById("restart-button");
+  const sidebar = document.getElementById('sidebar');
 
   // --- Google Authentication Setup ---
 
@@ -63,11 +61,11 @@ document.addEventListener("DOMContentLoaded", () => {
           });
   });
 
-  // Listen for Auth State Changes (and manage game/input visibility)
+  // Listen for Auth State Changes
   auth.onAuthStateChanged((user) => {
       if (user) {
-          // User is signed in.
           userNameSpan.textContent = user.displayName;
+
           if (user.photoURL) {
               userPhotoImg.src = user.photoURL;
               userPhotoImg.style.display = 'inline';
@@ -79,18 +77,13 @@ document.addEventListener("DOMContentLoaded", () => {
           signOutButton.style.display = 'block';
           signInButton.style.display = 'none';
           gameContainer.style.display = 'block';
+          restartButton.style.display = "block";
 
-          // ENABLE INPUT AND BUTTON
           userInput.disabled = false;
           submitGuessButton.disabled = false;
-          restartButton.style.display = "block"; //show restart
-
-          // Restart the game when a user signs in
           restartGame();
 
-
       } else {
-          // User is signed out.
           userInfoDiv.style.display = 'none';
           signOutButton.style.display = 'none';
           signInButton.style.display = 'block';
@@ -98,54 +91,74 @@ document.addEventListener("DOMContentLoaded", () => {
           userNameSpan.textContent = '';
           gameContainer.style.display = 'none';
 
-          // DISABLE INPUT AND BUTTON
           userInput.disabled = true;
           submitGuessButton.disabled = true;
-           restartButton.style.display = "none"; //hide restart
-
+          restartButton.style.display = "none";
       }
   });
 
-    // --- Restart Game Function ---
-  function restartGame() {
-      attempts = 0;                      // Reset attempts
-      userInput.value = "";              // Clear input field
-      feedback.textContent = "";          // Clear feedback
-      guessesContainer.innerHTML = "";   // Clear previous guesses
-      userInput.disabled = false;       // Re-enable input
-      submitGuessButton.disabled = false; // Re-enable button
+   //Open close sidebar
+  userPhotoImg.addEventListener("click", () => {
+      sidebar.classList.toggle("open")
+  })
 
-      // Get a *new* random word (if you want a new word each time)
-      //  targetWord = getRandomWord(); // You'd need a function to do this
+  // --- Restart Game Function ---
+  function restartGame() {
+      attempts = 0;
+      userInput.value = "";
+      feedback.textContent = "";
+      guessesContainer.innerHTML = "";
+      userInput.disabled = false;
+      submitGuessButton.disabled = false;
+      // targetWord = getRandomWord(); // Optional
   }
 
-  //Restart Button
   restartButton.addEventListener('click', restartGame);
 
-
   // --- Game Logic ---
-
-  // Disable input/button on initial load
   userInput.disabled = true;
   submitGuessButton.disabled = true;
   restartButton.style.display = "none";
 
+  submitGuessButton.addEventListener("click", async () => {
+      submitGuessButton.disabled = true; // Disable immediately
+      const guess = userInput.value.toLowerCase();
 
-  submitGuessButton.addEventListener("click", async () => { // Make the handler async
-    const guess = userInput.value.toLowerCase();
-    if (guess.length === 5) {
-        const valid = await isValidWord(guess); // Await the API call
-        if (valid) {
-            submitGuess(guess);
-        } else {
-            feedback.textContent = "Not a valid word.";
-            userInput.value = ""; //clear input
-        }
-    } else {
-        feedback.textContent = "Please enter a 5-letter word.";
-         userInput.value = ""; //clear input
-    }
+      if (guess.length !== 5) {
+          feedback.textContent = "Please enter a 5-letter word.";
+          userInput.value = "";
+          submitGuessButton.disabled = false; // Re-enable
+          return;
+      }
+
+      if (!(await isValidWord(guess))) {
+          feedback.textContent = "Not a valid word.";
+          userInput.value = "";
+          submitGuessButton.disabled = false; // Re-enable
+          return;
+      }
+
+      submitGuess(guess); // No need to await, handled inside
   });
+
+  async function isValidWord(word) {
+      try {
+          const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+          if (response.ok) {
+              return (await response.json()).length > 0;
+          } else if (response.status === 404) {
+              return false;
+          } else {
+              console.error("Dictionary API error:", response.status);
+              feedback.textContent = "Dictionary API error.  Try again.";
+              return false;
+          }
+      } catch (error) {
+          console.error("Network error:", error);
+          feedback.textContent = "Network error. Check connection.";
+          return false;
+      }
+  }
 
   function submitGuess(guess) {
       if (attempts < maxAttempts) {
@@ -163,52 +176,59 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           guessesContainer.appendChild(guessDiv);
-        
-          // Clear the input field *after* processing the guess
           userInput.value = "";
 
           if (guess === targetWord) {
               feedback.textContent = "You win!";
-              endGame();
+              endGame(); // disables input and button
               saveGameResults(true);
           } else if (attempts === maxAttempts) {
               feedback.textContent = `Game over! The word was: ${targetWord}`;
-              endGame();
+              endGame(); // disables input and button
               saveGameResults(false);
+          } else {
+              // *** Re-enable ONLY if game is NOT over ***
+              submitGuessButton.disabled = false;
           }
       }
   }
 
-  function checkGuess(guess) {
+ function checkGuess(guess) {
     let result = [];
-    let targetLetters = [...targetWord];
-    let guessLetters = [...guess];
+    let targetLetters = [...targetWord.toLowerCase()]; // Convert to lowercase AND copy
+    let guessLetters = [...guess.toLowerCase()];      // Convert to lowercase AND copy
 
     // First pass: check for exact matches (green)
-    guessLetters.forEach((letter, index) => {
-        if (letter === targetLetters[index]) {
-            result.push({ char: letter.toUpperCase(), color: 'green' });
-            targetLetters[index] = null; // Mark the letter as used
-            guessLetters[index] = null; // Avoid checking it again
-        } else {
-            result.push({ char: letter.toUpperCase(), color: 'gray' }); // Default to gray
+    for (let i = 0; i < guessLetters.length; i++) { //use a for loop
+        if (guessLetters[i] === targetLetters[i]) {
+            result.push({ char: guessLetters[i].toUpperCase(), color: 'green' }); //keep upper case in result
+            targetLetters[i] = null;
+            guessLetters[i] = null;
         }
-    });
+    }
+
+    // Default remaining letters to gray (only non-null letters)
+      for (let i = 0; i < guessLetters.length; i++) { //use a for loop
+        if (guessLetters[i] !== null) {
+            result.push({ char: guessLetters[i].toUpperCase(), color: 'gray' });  //keep uppercase
+        }
+    }
 
     // Second pass: check for partial matches (orange)
-    guessLetters.forEach((letter, index) => {
-        if (letter && targetLetters.includes(letter)) {
-            result[index] = { char: letter.toUpperCase(), color: 'orange' };
-            targetLetters[targetLetters.indexOf(letter)] = null; // Mark as used
+      for (let i = 0; i < guessLetters.length; i++) { //use a for loop
+        if (guessLetters[i] !== null && targetLetters.includes(guessLetters[i])) {
+            const targetIndex = targetLetters.indexOf(guessLetters[i]);
+            result[i] = { char: guessLetters[i].toUpperCase(), color: 'orange' }; // Keep uppercase
+            targetLetters[targetIndex] = null;
         }
-    });
+    }
 
     return result;
 }
 
   function endGame() {
       userInput.disabled = true;
-      submitGuessButton.disabled = true;
+      submitGuessButton.disabled = true; // This is redundant now, but harmless
   }
 
   async function saveGameResults(isSuccessful) {
@@ -217,24 +237,25 @@ document.addEventListener("DOMContentLoaded", () => {
           console.warn("No user signed in. Not saving results.");
           return;
       }
+
       const guesses = [];
       const guessDivs = document.querySelectorAll('#guesses-container .guess');
-        guessDivs.forEach(guessDiv => {
-          const guessLetters = [];
-          const spans = guessDiv.querySelectorAll('span');
-          spans.forEach(span => {
-              const letter = span.textContent;
-              let color = 'gray';
-              if (span.classList.contains('green')) {
-                  color = 'green';
-              } else if (span.classList.contains('orange')) {
-                  color = 'orange';
-              }
-              guessLetters.push({ char: letter, color: color });
-          });
-          const guessWord = guessLetters.map(l => l.char).join('');
-          guesses.push({guess: guessWord, result: guessLetters});
-      });
+      guessDivs.forEach(guessDiv => {
+        const guessLetters = [];
+        const spans = guessDiv.querySelectorAll('span');
+        spans.forEach(span => {
+            const letter = span.textContent;
+            let color = 'gray';
+            if (span.classList.contains('green')) {
+                color = 'green';
+            } else if (span.classList.contains('orange')) {
+                color = 'orange';
+            }
+            guessLetters.push({ char: letter, color: color });
+        });
+        const guessWord = guessLetters.map(l => l.char).join('');
+        guesses.push({guess: guessWord, result: guessLetters});
+    });
 
       const gameResult = {
           userId: user.uid,
@@ -243,32 +264,12 @@ document.addEventListener("DOMContentLoaded", () => {
           turns: isSuccessful ? attempts : "failed",
           guesses: guesses,
       };
-       try {
+
+      try {
           const docRef = await db.collection('games').add(gameResult);
           console.log("Game results saved with ID:", docRef.id);
       } catch (error) {
           console.error("Error saving game results:", error);
       }
-
-  }
-
-  async function isValidWord(word) {
-    try {
-        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        if (response.ok) { // 200 OK
-            const data = await response.json();
-            // The API returns an array.  If the word exists, the array
-            // will have at least one element.
-            return data.length > 0;
-        } else if (response.status === 404) { // Word not found
-            return false;
-        } else {
-            console.error("Dictionary API error:", response.status);
-            return false; // Treat API errors as invalid words (for simplicity)
-        }
-    } catch (error) {
-        console.error("Network error:", error);
-        return false; // Treat network errors as invalid
-    }
   }
 });

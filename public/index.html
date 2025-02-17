@@ -5,29 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Wordle</title>
     <link rel="icon" href="/favicon.ico" />
-    <link rel="stylesheet" href="style.css">  </head>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
+    <div id="app-container">
+        <header>
+            <h1>Family Wordle</h1>
+            <p>Guess the 5-letter word!</p>
+        </header>
 
-    <h1>Family Wordle</h1>
-    <p style="text-align: center;">Guess the 5-letter word!</p>
+        <div id="sidebar">
+            <div id="user-info-sidebar">
+                <img id="user-photo-sidebar" src="" alt="User Photo" style = "display: none">  
+                <span id="user-name-sidebar"></span>
+                <button id="sign-out-button">Sign Out</button>
+            </div>
+              <button id="restart-button">Restart Game</button>
 
-    <div id="user-info">
-        <img id="user-photo" src="" alt="User Photo">
-        <span id="user-name"></span>
-        <button id="sign-out-button">Sign Out</button>
-    </div>
-    <button id="sign-in-button">Sign in with Google</button>
+        </div>
 
-    <div id="game-container">
-        <div id="guesses-container"></div>
-        <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess">
-        <button id="submit-guess">Submit Guess</button>
-        <button id="restart-button">Restart Game</button>
-        <div id="feedback"></div>
+        <button id="sign-in-button">Sign in with Google</button>
+
+
+        <div id="game-container">
+
+            <div id="input-container">
+                <input type="text" id="user-input" maxlength="5" placeholder="Enter your guess">
+                <button id="submit-guess">Submit</button>
+            </div>
+            <div id="guesses-container"></div>
+
+            <div id="feedback"></div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="app.js"></script> </body>
+    <script src="app.js"></script>
+</body>
 </html>
