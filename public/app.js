@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitGuessButton = document.getElementById("submit-guess");
   const feedback = document.getElementById("feedback");
   const guessesContainer = document.getElementById("guesses-container");
-  const gameContainer = document.getElementById("game-container"); // Get the game container
+  const gameContainer = document.getElementById("game-container");
 
   // --- Google Authentication Setup ---
 
@@ -44,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
   signInButton.addEventListener('click', () => {
       auth.signInWithPopup(provider)
           .then((result) => {
-              // User is signed in (UI updates are handled in onAuthStateChanged)
               console.log("User signed in");
           })
           .catch((error) => {
@@ -56,18 +55,16 @@ document.addEventListener("DOMContentLoaded", () => {
       auth.signOut()
           .then(() => {
               console.log("Signed out");
-              // UI updates are handled in onAuthStateChanged
           })
           .catch((error) => {
               console.error("Error signing out:", error);
           });
   });
 
-  // Listen for Auth State Changes (and manage game visibility)
+  // Listen for Auth State Changes (and manage game/input visibility)
   auth.onAuthStateChanged((user) => {
       if (user) {
           // User is signed in.
-          console.log("Auth state changed, user:", user);
           userNameSpan.textContent = user.displayName;
           if (user.photoURL) {
               userPhotoImg.src = user.photoURL;
@@ -79,32 +76,30 @@ document.addEventListener("DOMContentLoaded", () => {
           userInfoDiv.style.display = 'block';
           signOutButton.style.display = 'block';
           signInButton.style.display = 'none';
-          gameContainer.style.display = 'block'; // Show the game
+          gameContainer.style.display = 'block';
 
-          // *** ENABLE INPUT AND BUTTON ***
+          // ENABLE INPUT AND BUTTON
           userInput.disabled = false;
           submitGuessButton.disabled = false;
 
       } else {
           // User is signed out.
-          console.log("User is signed out");
           userInfoDiv.style.display = 'none';
           signOutButton.style.display = 'none';
           signInButton.style.display = 'block';
           userPhotoImg.style.display = 'none';
           userNameSpan.textContent = '';
-          gameContainer.style.display = 'none'; // Hide the game
+          gameContainer.style.display = 'none';
 
-          // *** DISABLE INPUT AND BUTTON ***
+          // DISABLE INPUT AND BUTTON
           userInput.disabled = true;
           submitGuessButton.disabled = true;
       }
   });
 
-
   // --- Game Logic ---
 
-  // Disable the game initially (this is now redundant, but harmless)
+  // Disable input/button on initial load (good practice)
   userInput.disabled = true;
   submitGuessButton.disabled = true;
 
@@ -135,14 +130,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
           guessesContainer.appendChild(guessDiv);
 
+          // Check for win/loss *AFTER* adding the guess to the UI
           if (guess === targetWord) {
               feedback.textContent = "You win!";
+              endGame(); // Call endGame function on win
               saveGameResults(true);
-          } else {
-              if (attempts === maxAttempts) {
-                  feedback.textContent = `Game over! The word was: ${targetWord}`;
-                  saveGameResults(false);
-              }
+          } else if (attempts === maxAttempts) {
+              feedback.textContent = `Game over! The word was: ${targetWord}`;
+              endGame(); // Call endGame function on loss
+              saveGameResults(false);
           }
       }
   }
@@ -161,13 +157,21 @@ document.addEventListener("DOMContentLoaded", () => {
               result.push({ char: letter.toUpperCase(), color: 'gray' });
           }
       });
+
       guessLetters.forEach((letter, index) => {
           if (letter && targetLetters.includes(letter)) {
               result[index] = { char: letter.toUpperCase(), color: 'orange' };
               targetLetters[targetLetters.indexOf(letter)] = null;
           }
       });
+
       return result;
+  }
+
+  // --- End Game Function ---
+  function endGame() {
+      userInput.disabled = true;
+      submitGuessButton.disabled = true;
   }
 
   async function saveGameResults(isSuccessful) {
@@ -181,12 +185,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const guessDivs = document.querySelectorAll('#guesses-container .guess');
         guessDivs.forEach(guessDiv => {
           const guessLetters = [];
-          // Get all spans within the current guess div
           const spans = guessDiv.querySelectorAll('span');
           spans.forEach(span => {
-              // Extract the letter and its color class
               const letter = span.textContent;
-              let color = 'gray'; // Default to gray
+              let color = 'gray';
               if (span.classList.contains('green')) {
                   color = 'green';
               } else if (span.classList.contains('orange')) {
@@ -194,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               guessLetters.push({ char: letter, color: color });
           });
-              // reconstruct the guess word string
           const guessWord = guessLetters.map(l => l.char).join('');
           guesses.push({guess: guessWord, result: guessLetters});
       });
@@ -207,8 +208,6 @@ document.addEventListener("DOMContentLoaded", () => {
           turns: isSuccessful ? attempts : "failed",
           guesses: guesses,
       };
-
-      console.log(gameResult)
 
       try {
           const docRef = await db.collection('games').add(gameResult);
