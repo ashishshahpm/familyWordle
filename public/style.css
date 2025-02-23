@@ -1,0 +1,291 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+/* Main container */
+#app-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative; /* Needed for absolute positioning of sidebar */
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    margin-bottom: 5px; /* Reduce spacing between title and subtitle */
+}
+
+/* Sidebar */
+#sidebar {
+    position: absolute; /* Take it out of the normal flow */
+    top: 0;
+    left: -250px; /* Initially hidden off-screen */
+    width: 250px;
+    height: 100%;
+    background-color: #f8f8f8;
+    border-right: 1px solid #ccc;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: left 0.3s ease; /* Smooth transition for sliding */
+    z-index: 100; /* Ensure it's above other content */
+}
+
+#sidebar.open {
+    left: 0; /* Slide in when open */
+}
+
+
+#user-info-sidebar {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+      border-bottom: 1px solid #ccc;  /* Add a subtle bottom border */
+}
+
+
+#user-photo-sidebar {
+    width: 60px; /* Larger photo in sidebar */
+    height: 60px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+/* Sign-In/Out Buttons */
+#sign-in-button,
+#sign-out-button {
+    padding: 10px 15px;
+    background-color: #4285F4;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-top: 10px; /* Add some space above the sign-out button */
+    width: 100%;
+    display: block;
+    margin: 20px auto;
+}
+
+#sign-out-button {
+    background-color: #db4437;
+    display: none; /* Hidden by default */
+}
+
+/* Game Container */
+#game-container {
+    display: none;
+    text-align: center;
+}
+
+#game-container p{
+    text-align: center;
+}
+
+/* Input and Submit */
+#input-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#user-input {
+    padding: 10px;
+    font-size: 18px;
+    width: 200px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#submit-guess {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* Guesses */
+#guesses-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+#guesses-container .guess {
+    display: flex;
+    gap: 5px;
+     justify-content: center; /* Center letters */
+}
+
+#guesses-container .guess span {
+     flex: 0 0 50px; /* Fixed width/height, don't grow/shrink */
+    height: 50px;  /* Make them square */
+    font-size: 2em;
+    text-align: center;
+    border: 2px solid #ccc;
+    padding: 5px;
+    box-sizing: border-box;
+    text-transform: uppercase;
+}
+#restart-button, #scores-button { /* Style both buttons similarly */
+    display: block; /* Make them block-level for full width */
+    margin: 10px 0; /* Space them out */
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 100%; /* Full width within the sidebar */
+}
+
+#restart-button {
+    display: none; /* Hide by default, show when logged in */
+}
+
+
+/* Colors */
+.green {
+    background-color: #6aaa64;
+    color: white;
+    border-color: #6aaa64;
+}
+
+.orange {
+    background-color: #c9b458;
+    color: white;
+    border-color: #c9b458;
+}
+
+.gray {
+    background-color: #787c7e;
+    color: white;
+    border-color: #787c7e;
+}
+
+/* Feedback */
+#feedback {
+    min-height: 24px;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* Scores Container */
+#scores-container {
+    position: fixed; /* Or absolute, depending on desired behavior */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000; /* Make sure it's on top */
+    display: none; /* Initially hidden */
+    width: 80%; /* Adjust as needed */
+    max-width: 500px;
+}
+
+#scores-list {
+    list-style: none; /* Remove bullet points */
+    padding: 0;
+    margin: 0;
+}
+
+#scores-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+#close-scores-button{
+     display: block;
+    margin: 10px 0;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#scores-list li:last-child {
+    border-bottom: none; /* Remove border from last item */
+}
+
+/* Histogram Styles */
+#histogram-container {
+    display: flex;
+    flex-direction: column; /* Stack histogram and labels vertically */
+    height: 250px; /* Fixed height for the histogram */
+    width: 100%;
+    margin-top: 20px;
+}
+
+#histogram {
+    display: flex;
+    align-items: flex-end; /* Bars will grow from the bottom */
+    justify-content: space-around; /* Evenly space the bars */
+    height: 80%; /* 80% of container height for bars */
+    border-left: 2px solid black;
+    border-bottom: 2px solid black;
+    padding-left: 10px; /* For y-axis label spacing */
+    padding-bottom: 5px;
+
+}
+
+.bar {
+    width: 30px; /* Adjust as needed */
+    background-color: #008CBA;
+    position: relative; /* For tooltip positioning */
+}
+
+.bar-label {
+    position: absolute;
+    top: -20px; /* Position above the bar */
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap; /* Prevent label from wrapping */
+}
+
+#x-axis-labels {
+    display: flex;
+    justify-content: space-around;
+    width: calc(100% - 40px); /* Match histogram width, accounting for padding */
+    margin-left:40px; /*account for y axis label*/
+
+}
+
+#x-axis-labels span {
+    width: 30px; /* Should match bar width */
+    text-align: center;
+
+}
+
+.y-axis-label {
+    position: absolute; /* Position relative to #histogram-container */
+    left: -5px; /* Position just outside the container */
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg); /* Rotate and center */
+    white-space: nowrap;
+      transform-origin: 0 0; /* Rotate around the top-left corner */
+
+}
