@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("✅ Firebase Initialized");
 
     // Game setup
-    let targetWord = "apple"; // Default
+    let targetWord = "apple"; // Default, will be overwritten
     let attempts = 0;
     const maxAttempts = 6;
 
@@ -36,8 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const gameContainer = document.getElementById("game-container");
     const restartButton = document.getElementById("restart-button");
     const sidebar = document.getElementById('sidebar');
-    const scoresButton = document.getElementById('scores-button'); // NEW
-    const scoresContainer = document.getElementById('scores-container'); // NEW
+    const scoresButton = document.getElementById('scores-button');
+    const scoresContainer = document.getElementById('scores-container');
     const scoresList = document.getElementById('scores-list'); //NEW
      const closeScoresButton = document.getElementById('close-scores-button');
 
@@ -88,7 +88,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             userInput.disabled = false;
             submitGuessButton.disabled = false;
-            restartGame();
+             restartGame();
+
 
         } else {
             userInfoDiv.style.display = 'none';
@@ -112,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sidebar.classList.toggle("open")
     })
 
-    // --- Restart Game Function ---
+     // --- Restart Game Function ---
     function restartGame() {
         attempts = 0;
         userInput.value = "";
@@ -120,9 +121,11 @@ document.addEventListener("DOMContentLoaded", () => {
         guessesContainer.innerHTML = "";
         userInput.disabled = false;
         submitGuessButton.disabled = false;
-        scoresContainer.style.display = 'none'; // Hide scores if restarting
-        // targetWord = getRandomWord(); // Optional
+        scoresContainer.style.display = 'none';
+        targetWord = getWordOfTheDay(); // Use the new function!
+        gameContainer.style.display = 'block';
     }
+
 
     restartButton.addEventListener('click', restartGame);
 
@@ -254,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function endGame() {
         userInput.disabled = true;
-        submitGuessButton.disabled = true; // This is redundant now, but harmless
+        submitGuessButton.disabled = true;
     }
 
     async function saveGameResults(isSuccessful) {
@@ -300,86 +303,121 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function displayScores() {
-        const user = auth.currentUser;
-        if (!user) {
-            console.warn("No user signed in. Cannot display scores.");
-            scoresContainer.innerHTML = '<p>Please sign in to view scores.</p>'; // User-friendly message, and proper innerHTML use
-            return;
-        }
-    
-        // Clear any previous histogram
+    const user = auth.currentUser;
+    if (!user) {
+        console.warn("No user signed in. Cannot display scores.");
+        scoresList.innerHTML = '<li>Please sign in to view scores.</li>'; // User-friendly message, and proper innerHTML use
+        return;
+    }
+
+    // Clear any previous histogram
         const histogramContainer = document.getElementById('histogram');
         histogramContainer.innerHTML = '';
-    
-    
-        try {
-            const querySnapshot = await db.collection('games')
-                .where('userId', '==', user.uid)
-                .orderBy('date', 'desc')  //Keep ordering
-                // .limit(5)  Remove limit
-                .get();
-    
-            if (querySnapshot.empty) {
-                histogramContainer.innerHTML = '<p>No scores found.</p>';
-                return;
-            }
-    
-            // Aggregate the data for the histogram
-            const turnCounts = {
-                1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0
-            };
-    
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const turns = data.turns; // Could be a number (1-6) or "failed"
-                if (turnCounts.hasOwnProperty(turns)) {
-                    turnCounts[turns]++;
-                }
-            });
-    
-            console.log("Turn Counts:", turnCounts);
-    
-            // Find the maximum count for scaling the bars
-            let maxCount = 0;
-            for (const count of Object.values(turnCounts)) {
-                if (count > maxCount) {
-                    maxCount = count;
-                }
-            }
-    
-            // Create the histogram bars
-            for (let i = 1; i <= 6; i++) {
-                const barHeight = maxCount === 0 ? 0 : (turnCounts[i] / maxCount) * 100; // Calculate height as percentage
-                const bar = document.createElement('div');
-                bar.classList.add('bar');
-                bar.style.height = `${barHeight}%`;
-                bar.setAttribute('data-turns', i); // Add data attribute for turns
-                 // Add label
-                const barLabel = document.createElement('span');
-                barLabel.classList.add("bar-label");
-                barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : ""; // Only if > 0
-                bar.appendChild(barLabel);
-    
-                histogramContainer.appendChild(bar);
-            }
-            //add bar for fail
-            const failBarHeight = maxCount === 0 ? 0 : (turnCounts['failed'] / maxCount) * 100;
-            const failBar = document.createElement('div');
-            failBar.classList.add('bar');
-            failBar.style.height = `${failBarHeight}%`;
-            failBar.setAttribute('data-turns', 'failed');
-    
-            const failBarLabel = document.createElement('span');
-            failBarLabel.classList.add("bar-label");
-            failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
-            failBar.appendChild(failBarLabel);
-    
-            histogramContainer.appendChild(failBar);
-    
-    
-        } catch (error) {
-            console.error("Error fetching scores:", error);
-            histogramContainer.innerHTML = '<p>Error loading scores.</p>';
+
+
+    try {
+        const querySnapshot = await db.collection('games')
+            .where('userId', '==', user.uid)
+            .orderBy('date', 'desc')  //Keep ordering
+            // .limit(5)  Remove limit
+            .get();
+
+        if (querySnapshot.empty) {
+            histogramContainer.innerHTML = '<p>No scores found.</p>';
+            return;
         }
+
+        // Aggregate the data for the histogram
+        const turnCounts = {
+            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0
+        };
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const turns = data.turns; // Could be a number (1-6) or "failed"
+            if (turnCounts.hasOwnProperty(turns)) {
+                turnCounts[turns]++;
+            }
+        });
+
+        console.log("Turn Counts:", turnCounts);
+
+        // Find the maximum count for scaling the bars
+        let maxCount = 0;
+        for (const count of Object.values(turnCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+            }
+        }
+
+        // Create the histogram bars
+        for (let i = 1; i <= 6; i++) {
+            const barHeight = maxCount === 0 ? 0 : (turnCounts[i] / maxCount) * 100; // Calculate height as percentage
+            const bar = document.createElement('div');
+            bar.classList.add('bar');
+            bar.style.height = `${barHeight}%`;
+            bar.setAttribute('data-turns', i); // Add data attribute for turns
+             // Add label
+            const barLabel = document.createElement('span');
+            barLabel.classList.add("bar-label");
+            barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : ""; // Only if > 0
+            bar.appendChild(barLabel);
+
+            histogramContainer.appendChild(bar);
+        }
+        //add bar for fail
+        const failBarHeight = maxCount === 0 ? 0 : (turnCounts['failed'] / maxCount) * 100;
+        const failBar = document.createElement('div');
+        failBar.classList.add('bar');
+        failBar.style.height = `${failBarHeight}%`;
+        failBar.setAttribute('data-turns', 'failed');
+
+        const failBarLabel = document.createElement('span');
+        failBarLabel.classList.add("bar-label");
+        failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
+        failBar.appendChild(failBarLabel);
+
+        histogramContainer.appendChild(failBar);
+
+
+    } catch (error) {
+        console.error("Error fetching scores:", error);
+        histogramContainer.innerHTML = '<p>Error loading scores.</p>';
+    }
+}
+    //Add this function
+      function getRandomWord() {
+        const words = ["apple", "crane", "space", "table", "blimp", "grape", "music", "jumbo", "light", "house",
+    "train", "plane", "beach", "cloud", "bread", "water", "chair", "shirt", "pants", "shoes"]; //Your words here
+        const randomIndex = Math.floor(Math.random() * words.length);
+        return words[randomIndex];
+    }
+
+     function mulberry32(a) {
+        return function() {
+          a |= 0; a = a + 0x6D2B79F5 | 0;
+          let t = Math.imul(a ^ a >>> 15, 1 | a);
+          t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+          return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+    }
+
+    function getWordOfTheDay() {
+        const now = new Date();
+        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Get date in GMT
+        const year = gmtDate.getUTCFullYear();
+        const month = gmtDate.getUTCMonth();
+        const day = gmtDate.getUTCDate();
+
+        // Create a seed from the date (YYYYMMDD)
+        const seed = year * 10000 + (month + 1) * 100 + day;
+        const rng = mulberry32(seed); // Create a seeded PRNG
+
+        const words = ["apple", "crane", "space", "table", "blimp", "grape", "music", "jumbo", "light", "house",
+        "train", "plane", "beach", "cloud", "bread", "water", "chair", "shirt", "pants", "shoes"]; //Your words here
+
+        // Generate a pseudorandom index based on the seed
+        const randomIndex = Math.floor(rng() * words.length);
+        return words[randomIndex];
     }
 });
