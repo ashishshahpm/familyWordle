@@ -4,11 +4,10 @@ console.log("GCLOUD_PROJECT:", process.env.GCLOUD_PROJECT);
 
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const fs = require('node:fs/promises'); // Use promises version of fs
-
+const fs = require('node:fs/promises');
 
 initializeApp({
-  credential: applicationDefault(), // Use Application Default Credentials
+    credential: applicationDefault(), // Use Application Default Credentials
 });
 
 const db = getFirestore();
@@ -18,32 +17,33 @@ async function importWords(filePath) {
         // 1. Read the file
         const data = await fs.readFile(filePath, 'utf8');
 
-        // 2. Split into an array of words, trim whitespace, convert to lowercase, and remove empty strings/duplicates
-        const words = [...new Set(data.split('\n') // Split by newline
-          .map(word => word.trim().toLowerCase()) // Trim and lowercase
-          .filter(word => word !== "" && word.length === 5))]  // Remove empty strings + only 5 letter words
+        // 2. Split, trim, lowercase, filter, and remove duplicates
+        const words = [...new Set(data.split('\n')
+            .map(word => word.trim().toLowerCase())
+            .filter(word => word !== "" && word.length === 5))
+        ];
 
-        console.log(`Read ${words.length} unique words from ${filePath}`);
+        console.log(`Read ${words.length} unique 5-letter words from ${filePath}`);
 
         // 3. Batch write to Firestore
-        const batch = db.batch();
+        let batch = db.batch(); // Declare batch *outside* the loop
         let batchCount = 0;
         const batchSize = 500; // Firestore batch limit
 
         for (const word of words) {
-          const docRef = db.collection('words').doc(word); // Use word as doc ID!
-          batch.set(docRef, { word: word }); // Create doc with 'word' field
-          batchCount++;
+            const docRef = db.collection('words').doc(word); // Use word as doc ID!
+            batch.set(docRef, { word: word });
+            batchCount++;
 
-          if (batchCount === batchSize) {
+            if (batchCount === batchSize) {
                 await batch.commit();
                 console.log('Batch committed.');
-                batchCount = 0; // Reset for next batch
-                batch = db.batch(); // Create new batch object
-          }
+                batch = db.batch(); // Create a *new* batch object
+                batchCount = 0;
+            }
         }
 
-        // Commit any remaining documents in the last batch
+        // Commit any remaining documents
         if (batchCount > 0) {
             await batch.commit();
             console.log('Final batch committed.');
