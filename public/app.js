@@ -255,18 +255,15 @@ document.addEventListener("DOMContentLoaded", () => {
       // First pass: check for exact matches (green)
       for (let i = 0; i < guessLetters.length; i++) { //use a for loop
           if (guessLetters[i] === targetLetters[i]) {
-              result.push({ char: guessLetters[i].toUpperCase(), color: 'green' }); //UPPERCASE HERE
-              targetLetters[i] = null;
-              guessLetters[i] = null;
+            result.push({ char: guessLetters[i].toUpperCase(), color: 'green' }); //UPPERCASE HERE
+            targetLetters[i] = null;
+            guessLetters[i] = null;
+          }
+          else {
+            result.push({ char: guessLetters[i].toUpperCase(), color: 'gray' }); //UPPERCASE HERE  
           }
       }
 
-      // Default remaining letters to gray (only non-null letters)
-        for (let i = 0; i < guessLetters.length; i++) { //use a for loop
-          if (guessLetters[i] !== null) {
-              result.push({ char: guessLetters[i].toUpperCase(), color: 'gray' });  //UPPERCASE HERE
-          }
-      }
 
       // Second pass: check for partial matches (orange)
         for (let i = 0; i < guessLetters.length; i++) { //use a for loop
@@ -275,9 +272,8 @@ document.addEventListener("DOMContentLoaded", () => {
               result[i] = { char: guessLetters[i].toUpperCase(), color: 'orange' }; // UPPERCASE HERE
               targetLetters[targetIndex] = null;
           }
-      }
-
-      return result;
+        }
+        return result;
   }
 
     function endGame() {
