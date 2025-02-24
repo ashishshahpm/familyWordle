@@ -38,9 +38,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById('sidebar');
     const scoresButton = document.getElementById('scores-button');
     const scoresContainer = document.getElementById('scores-container');
-    const scoresList = document.getElementById('scores-list'); //NEW
-     const closeScoresButton = document.getElementById('close-scores-button');
+    const histogramContainer = document.getElementById('histogram');
+    const closeScoresButton = document.getElementById('close-scores-button');
 
+    let wordList = []; // Global to store word list
+
+    // --- Load Word List from Firestore ---
+    async function loadWordList() {
+        try {
+            const querySnapshot = await db.collection('words').get();
+             wordList = querySnapshot.docs.map(doc => doc.data().word); //optionally store for getWordOfTheDay
+            console.log("Word list loaded:", wordList.length, "words");
+            if (wordList.length === 0) {
+                console.warn("Word list from Firestore is empty!");
+                feedback.textContent = "Error: Word list is empty. Cannot start game.";
+                userInput.disabled = true;
+                submitGuessButton.disabled = true;
+                restartButton.disabled = true; //Disable restart too
+            }
+        } catch (error) {
+            console.error("Could not load word list:", error);
+            feedback.textContent = "Error: Could not load word list.";
+             userInput.disabled = true;
+             submitGuessButton.disabled = true;
+             restartButton.disabled = true; //Disable restart on error
+        }
+    }
 
     // --- Google Authentication Setup ---
 
@@ -66,8 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     });
 
-    // Listen for Auth State Changes
-    auth.onAuthStateChanged((user) => {
+    // Listen for Auth State Changes - Call loadWordList *before* auth listener
+    loadWordList().then(() => { // Make sure word list loads *before* anything else.
+        auth.onAuthStateChanged((user) => {
         if (user) {
             userNameSpan.textContent = user.displayName;
 
@@ -88,8 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             userInput.disabled = false;
             submitGuessButton.disabled = false;
-             restartGame();
-
+            restartGame();
 
         } else {
             userInfoDiv.style.display = 'none';
@@ -104,28 +127,30 @@ document.addEventListener("DOMContentLoaded", () => {
             restartButton.style.display = "none";
             scoresButton.style.display = "none"; // Hide scores button
             scoresContainer.style.display = 'none'; // Ensure scores are hidden
-
         }
     });
+     });
+
 
      //Open close sidebar
     userPhotoImg.addEventListener("click", () => {
         sidebar.classList.toggle("open")
     })
 
-     // --- Restart Game Function ---
+    // --- Restart Game Function ---
     function restartGame() {
         attempts = 0;
         userInput.value = "";
         feedback.textContent = "";
         guessesContainer.innerHTML = "";
-        userInput.disabled = false;
-        submitGuessButton.disabled = false;
+         if (wordList.length > 0){
+            userInput.disabled = false; // Only re-enable if word list loaded
+            submitGuessButton.disabled = false;
+        }
         scoresContainer.style.display = 'none';
-        targetWord = getWordOfTheDay(); // Use the new function!
+        targetWord = getWordOfTheDay();
         gameContainer.style.display = 'block';
     }
-
 
     restartButton.addEventListener('click', restartGame);
 
@@ -311,7 +336,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Clear any previous histogram
-        const histogramContainer = document.getElementById('histogram');
         histogramContainer.innerHTML = '';
 
 
@@ -387,10 +411,12 @@ document.addEventListener("DOMContentLoaded", () => {
 }
     //Add this function
       function getRandomWord() {
-        const words = ["apple", "crane", "space", "table", "blimp", "grape", "music", "jumbo", "light", "house",
-    "train", "plane", "beach", "cloud", "bread", "water", "chair", "shirt", "pants", "shoes"]; //Your words here
-        const randomIndex = Math.floor(Math.random() * words.length);
-        return words[randomIndex];
+        if (wordList.length === 0) {
+          console.warn("Word list is empty.  Returning default word.");
+          return "apple"; // Return a default word
+        }
+        const randomIndex = Math.floor(Math.random() * wordList.length);
+        return wordList[randomIndex];
     }
 
      function mulberry32(a) {
@@ -403,21 +429,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getWordOfTheDay() {
+        if (wordList.length === 0) {
+            console.warn("Word list is empty. Returning default word.");
+            return "apple"; // Return a default if the list is empty
+        }
+    
         const now = new Date();
-        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Get date in GMT
+        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Get GMT date
         const year = gmtDate.getUTCFullYear();
         const month = gmtDate.getUTCMonth();
         const day = gmtDate.getUTCDate();
-
+    
         // Create a seed from the date (YYYYMMDD)
         const seed = year * 10000 + (month + 1) * 100 + day;
         const rng = mulberry32(seed); // Create a seeded PRNG
-
-        const words = ["apple", "crane", "space", "table", "blimp", "grape", "music", "jumbo", "light", "house",
-        "train", "plane", "beach", "cloud", "bread", "water", "chair", "shirt", "pants", "shoes"]; //Your words here
-
-        // Generate a pseudorandom index based on the seed
-        const randomIndex = Math.floor(rng() * words.length);
-        return words[randomIndex];
+    
+        const randomIndex = Math.floor(rng() * wordList.length);  // Use wordList
+        return wordList[randomIndex];
     }
 });
