@@ -332,7 +332,7 @@ function checkGuess(guess) {
             result.push({ char: guessLetters[i].toUpperCase(), color: 'gray' });  //UPPERCASE HERE
         }
     }*/
-   
+
     console.log("First check Result:", JSON.stringify(result));
 
 
@@ -426,30 +426,41 @@ async function displayScores() {
             }
         });
 
+        // Calculate maxCount *after* populating turnCounts
         let maxCount = Math.max(...Object.values(turnCounts));
 
+         // Handle the case where maxCount is 0 (no games played)
+        if (maxCount === 0) {
+            histogramContainer.innerHTML = '<p>No games played yet.</p>';
+            return;
+        }
+
+
         for (let i = 1; i <= 6; i++) {
-            const barHeight = maxCount === 0 ? 0 : (turnCounts[i] / maxCount) * 100;
+            const barHeight = (turnCounts[i] / maxCount) * 100;  // Calculate as percentage
             const bar = document.createElement('div');
             bar.classList.add('bar');
             bar.style.height = `${barHeight}%`;
             bar.setAttribute('data-turns', i);
+
             const barLabel = document.createElement('span');
             barLabel.classList.add("bar-label");
-            barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
-            bar.appendChild(barLabel);
-            histogramContainer.appendChild(bar);
+            barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : ""; //Show only if > 0
+            bar.appendChild(barLabel); // Add label to the bar
+            histogramContainer.appendChild(bar); // Add bar to the histogram
         }
 
-        const failBarHeight = maxCount === 0 ? 0 : (turnCounts['failed'] / maxCount) * 100;
+        const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
         const failBar = document.createElement('div');
         failBar.classList.add('bar');
         failBar.style.height = `${failBarHeight}%`;
         failBar.setAttribute('data-turns', 'failed');
-        const failBarLabel = document.createElement('span');
-        failBarLabel.classList.add("bar-label");
-        failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
-        failBar.appendChild(failBarLabel);
+
+         const failBarLabel = document.createElement('span');
+            failBarLabel.classList.add("bar-label");
+            failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : ""; //Show only if > 0
+            failBar.appendChild(failBarLabel); // Add label to the bar
+
         histogramContainer.appendChild(failBar);
 
     } catch (error) {
@@ -457,6 +468,7 @@ async function displayScores() {
         histogramContainer.innerHTML = '<p>Error loading scores.</p>';
     }
 }
+
 // --- getWordOfTheDay ---
     function getWordOfTheDay() {
         if (wordList.length === 0) {

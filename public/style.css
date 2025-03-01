@@ -23,41 +23,41 @@ header {
 }
 
 h1 {
-    margin-bottom: 5px;
+    margin-bottom: 5px; /* Reduce spacing between title and subtitle */
 }
 
 /* Sidebar */
 #sidebar {
-    position: absolute;
+    position: absolute; /* Take it out of the normal flow */
     top: 0;
-    left: -250px;
+    left: -250px; /* Initially hidden off-screen */
     width: 250px;
     height: 100%;
     background-color: #f8f8f8;
     border-right: 1px solid #ccc;
     padding: 20px;
     box-sizing: border-box;
-    transition: left 0.3s ease;
-    z-index: 100;
+    transition: left 0.3s ease; /* Smooth transition for sliding */
+    z-index: 100; /* Ensure it's above other content */
 }
 
 #sidebar.open {
-    left: 0;
+    left: 0; /* Slide in when open */
 }
 
 
 #user-info-sidebar {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Stack items vertically */
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;  /* Add a subtle bottom border */
 }
 
 
 #user-photo-sidebar {
-    width: 60px;
+    width: 60px; /* Larger photo in sidebar */
     height: 60px;
     border-radius: 50%;
     margin-bottom: 10px;
@@ -73,7 +73,7 @@ h1 {
     cursor: pointer;
     border-radius: 4px;
     font-size: 16px;
-    margin-top: 10px;
+    margin-top: 10px; /* Add some space above the sign-out button */
     width: 100%;
     display: block;
     margin: 20px auto;
@@ -93,6 +93,9 @@ h1 {
 #game-container p{
     text-align: center;
 }
+
+/* Input and Submit */
+/*removed since letter boxes are used for input*/
 
 /* Guesses */
 #guesses-container {
@@ -129,7 +132,7 @@ h1 {
     border: none;
     cursor: pointer;
     border-radius: 4px;
-    width: 100%;
+    width: 100%; /* Full width within the sidebar */
 }
 
 #restart-button {
@@ -177,92 +180,111 @@ h1 {
     display: none;
     width: 80%;
     max-width: 500px;
+    text-align: center; /* Center text */
 }
-/* Style the list */
-#scores-list {
-    list-style: none;  /* Remove bullet points */
-    padding: 0;
-    margin: 0; /* Remove default margin */
-}
-/* Style each list item */
-#scores-list li {
-    padding: 8px 0; /* Add vertical padding */
-    border-bottom: 1px solid #eee; /* Add a subtle bottom border */
-}
-
-/* Remove border from the last item */
-#scores-list li:last-child {
-    border-bottom: none;
-}
-
-#close-scores-button{
-     display: block;
-     margin: auto;
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #008CBA;
-    color: white;
+/* Close Button */
+#close-scores-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none; /* Remove background */
     border: none;
+    padding: 0; /* Remove padding */
     cursor: pointer;
-    border-radius: 4px;
-    width: 50%;
+    font-size: 0; /* Set to zero, as we have the span */
 
 }
+
+#close-scores-button:hover {
+  /* No background change on hover for the button itself */
+  background-color: transparent;
+}
+.close-icon {
+        font-size: 24px; /* Adjust size as needed */
+        color: #555;       /* Dark gray color */
+        line-height: 1;    /* Adjust line-height */
+}
+.close-icon:hover {
+        color: #000;   /* Darker on hover */
+        text-decoration: none;
+}
+#scores-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#scores-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
 /* Histogram Styles */
 #histogram-container {
     display: flex;
-    flex-direction: column; /* Stack histogram and labels vertically */
-    height: 250px; /* Fixed height for the histogram */
+    flex-direction: column;
+    align-items: center;
     width: 100%;
     margin-top: 20px;
 }
 
+/* Create a container for the y-axis label and histogram */
+#histogram-wrapper{
+  position: relative; /*For positioning the y-axis*/
+}
+
+.y-axis-label {
+    position: absolute;
+    left: -35px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg); /* Rotate and center */
+    white-space: nowrap;
+      transform-origin: 0 0; /* Rotate around the top-left corner */
+
+}
+
 #histogram {
-    display: flex;
-    align-items: flex-end; /* Bars will grow from the bottom */
-    justify-content: space-around; /* Evenly space the bars */
-    height: 80%; /* 80% of container height for bars */
-    border-left: 2px solid black;
-    border-bottom: 2px solid black;
-    padding-left: 10px; /* For y-axis label spacing */
-    padding-bottom: 5px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 columns */
+     /* grid-template-rows: auto 1fr;  Remove this */
+    gap: 5px;
+    width: 100%;
+    height: 200px; /* Fixed height */
+    border-bottom: 2px solid black; /* X-axis */
+    padding-top: 20px; /*Space above for labels*/
+    position: relative; /* For y-axis label*/
+    align-items: end; /* ADDED. Align items to the bottom */
 
 }
 
 .bar {
-    width: 30px; /* Adjust as needed */
     background-color: #008CBA;
-    position: relative; /* For tooltip positioning */
+    position: relative; /* For positioning the label */
+    /*display: flex;          Remove flexbox from .bar
+    flex-direction: column-reverse;
+    height: inherit;
+    */
 }
 
 .bar-label {
     position: absolute;
     top: -20px; /* Position above the bar */
+    /* bottom: -20px; Remove this */
     left: 50%;
     transform: translateX(-50%);
-    white-space: nowrap; /* Prevent label from wrapping */
+    white-space: nowrap;
 }
-
 #x-axis-labels {
     display: flex;
     justify-content: space-around;
     width: calc(100% - 40px); /* Match histogram width, accounting for padding */
     margin-left:40px; /*account for y axis label*/
+     margin-top: 20px; /* Space below histogram */
 
 }
 
 #x-axis-labels span {
-    width: 30px; /* Should match bar width */
+     width: calc(100% / 7);
     text-align: center;
-
-}
-
-.y-axis-label {
-    position: absolute; /* Position relative to #histogram-container */
-    left: -5px; /* Position just outside the container */
-    top: 50%;
-    transform: translateY(-50%) rotate(-90deg); /* Rotate and center */
-    white-space: nowrap;
-      transform-origin: 0 0; /* Rotate around the top-left corner */
 
 }
