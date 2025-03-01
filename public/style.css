@@ -23,41 +23,41 @@ header {
 }
 
 h1 {
-    margin-bottom: 5px; /* Reduce spacing between title and subtitle */
+    margin-bottom: 5px;
 }
 
 /* Sidebar */
 #sidebar {
-    position: absolute; /* Take it out of the normal flow */
+    position: absolute;
     top: 0;
-    left: -250px; /* Initially hidden off-screen */
+    left: -250px;
     width: 250px;
     height: 100%;
     background-color: #f8f8f8;
     border-right: 1px solid #ccc;
     padding: 20px;
     box-sizing: border-box;
-    transition: left 0.3s ease; /* Smooth transition for sliding */
-    z-index: 100; /* Ensure it's above other content */
+    transition: left 0.3s ease;
+    z-index: 100;
 }
 
 #sidebar.open {
-    left: 0; /* Slide in when open */
+    left: 0;
 }
 
 
 #user-info-sidebar {
     display: flex;
-    flex-direction: column; /* Stack items vertically */
+    flex-direction: column;
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;
-      border-bottom: 1px solid #ccc;  /* Add a subtle bottom border */
+      border-bottom: 1px solid #ccc;
 }
 
 
 #user-photo-sidebar {
-    width: 60px; /* Larger photo in sidebar */
+    width: 60px;
     height: 60px;
     border-radius: 50%;
     margin-bottom: 10px;
@@ -73,7 +73,7 @@ h1 {
     cursor: pointer;
     border-radius: 4px;
     font-size: 16px;
-    margin-top: 10px; /* Add some space above the sign-out button */
+    margin-top: 10px;
     width: 100%;
     display: block;
     margin: 20px auto;
@@ -94,32 +94,6 @@ h1 {
     text-align: center;
 }
 
-/* Input and Submit */
-#input-container {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-#user-input {
-    padding: 10px;
-    font-size: 18px;
-    width: 200px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-#submit-guess {
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
 /* Guesses */
 #guesses-container {
     display: flex;
@@ -129,13 +103,13 @@ h1 {
     margin-bottom: 15px;
 }
 
-#guesses-container .guess {
-    display: flex;
+#guesses-container .guess-row{
+      display: flex;
     gap: 5px;
      justify-content: center; /* Center letters */
 }
 
-#guesses-container .guess span {
+#guesses-container .guess-row .letter-box {
      flex: 0 0 50px; /* Fixed width/height, don't grow/shrink */
     height: 50px;  /* Make them square */
     font-size: 2em;
@@ -145,9 +119,9 @@ h1 {
     box-sizing: border-box;
     text-transform: uppercase;
 }
-#restart-button, #scores-button { /* Style both buttons similarly */
-    display: block; /* Make them block-level for full width */
-    margin: 10px 0; /* Space them out */
+#restart-button, #scores-button {
+    display: block;
+    margin: 10px 0;
     padding: 10px 15px;
     font-size: 16px;
     background-color: #008CBA;
@@ -155,7 +129,7 @@ h1 {
     border: none;
     cursor: pointer;
     border-radius: 4px;
-    width: 100%; /* Full width within the sidebar */
+    width: 100%;
 }
 
 #restart-button {
@@ -191,7 +165,7 @@ h1 {
 
 /* Scores Container */
 #scores-container {
-    position: fixed; /* Or absolute, depending on desired behavior */
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -199,25 +173,31 @@ h1 {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1000; /* Make sure it's on top */
-    display: none; /* Initially hidden */
-    width: 80%; /* Adjust as needed */
+    z-index: 1000;
+    display: none;
+    width: 80%;
     max-width: 500px;
 }
-
+/* Style the list */
 #scores-list {
-    list-style: none; /* Remove bullet points */
+    list-style: none;  /* Remove bullet points */
     padding: 0;
-    margin: 0;
+    margin: 0; /* Remove default margin */
+}
+/* Style each list item */
+#scores-list li {
+    padding: 8px 0; /* Add vertical padding */
+    border-bottom: 1px solid #eee; /* Add a subtle bottom border */
 }
 
-#scores-list li {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+/* Remove border from the last item */
+#scores-list li:last-child {
+    border-bottom: none;
 }
+
 #close-scores-button{
      display: block;
-    margin: 10px 0;
+     margin: auto;
     padding: 10px 15px;
     font-size: 16px;
     background-color: #008CBA;
@@ -225,12 +205,9 @@ h1 {
     border: none;
     cursor: pointer;
     border-radius: 4px;
-}
+    width: 50%;
 
-#scores-list li:last-child {
-    border-bottom: none; /* Remove border from last item */
 }
-
 /* Histogram Styles */
 #histogram-container {
     display: flex;
