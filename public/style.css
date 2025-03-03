@@ -122,7 +122,7 @@ h1 {
     box-sizing: border-box;
     text-transform: uppercase;
 }
-#restart-button, #scores-button {
+#restart-button, #scores-button, #team-scores-button{
     display: block;
     margin: 10px 0;
     padding: 10px 15px;
@@ -165,7 +165,6 @@ h1 {
     margin-top: 10px;
     font-style: italic;
 }
-
 /* Scores Container */
 #scores-container {
     position: fixed;
@@ -182,32 +181,6 @@ h1 {
     max-width: 500px;
     text-align: center; /* Center text */
 }
-/* Close Button */
-#close-scores-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none; /* Remove background */
-    border: none;
-    padding: 0; /* Remove padding */
-    cursor: pointer;
-    font-size: 0; /* Set to zero, as we have the span */
-
-}
-
-#close-scores-button:hover {
-  /* No background change on hover for the button itself */
-  background-color: transparent;
-}
-.close-icon {
-        font-size: 24px; /* Adjust size as needed */
-        color: #555;       /* Dark gray color */
-        line-height: 1;    /* Adjust line-height */
-}
-.close-icon:hover {
-        color: #000;   /* Darker on hover */
-        text-decoration: none;
-}
 #scores-list {
     list-style: none;
     padding: 0;
@@ -219,6 +192,49 @@ h1 {
     border-bottom: 1px solid #eee;
 }
 
+#close-scores-button{
+        display: block;
+     margin: auto;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 50%;
+}
+
+/* Team Scores Container - Initially hidden, similar to scores-container */
+#team-scores-container {
+    position: fixed; /* Or absolute */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: none; /* Initially hidden */
+    width: 80%;
+    max-width: 500px;
+    text-align: center; /* Center content */
+}
+
+/* Close button for team scores */
+#close-team-scores-button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 50%; /* Example width, adjust as needed */
+}
 /* Histogram Styles */
 #histogram-container {
     display: flex;
@@ -229,7 +245,7 @@ h1 {
 }
 
 /* Create a container for the y-axis label and histogram */
-#histogram-wrapper{
+#histogram-wrapper, #team-histogram-wrapper{
   position: relative; /*For positioning the y-axis*/
 }
 
@@ -243,7 +259,7 @@ h1 {
 
 }
 
-#histogram {
+#histogram,  #team-histogram{
     display: grid;
     grid-template-columns: repeat(7, 1fr); /* 7 columns */
      /* grid-template-rows: auto 1fr;  Remove this */
@@ -274,6 +290,7 @@ h1 {
     transform: translateX(-50%);
     white-space: nowrap;
 }
+
 #x-axis-labels {
     display: flex;
     justify-content: space-around;

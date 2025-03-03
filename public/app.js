@@ -40,6 +40,12 @@ const scoresButton = document.getElementById('scores-button');
 const scoresContainer = document.getElementById('scores-container');
 const histogramContainer = document.getElementById('histogram');
 const closeScoresButton = document.getElementById('close-scores-button');
+ //Add team elements
+ const teamScoresButton = document.getElementById('team-scores-button');
+ const teamScoresContainer = document.getElementById('team-scores-container');
+ const teamHistogramContainer = document.getElementById('team-histogram');
+ const closeTeamScoresButton = document.getElementById('close-team-scores-button');
+
 
 let wordList = []; // Global to store word list
 
@@ -99,8 +105,9 @@ loadWordList().then(() => {
             restartButton.style.display = "block";
             scoresButton.style.display = "block";
 
-            restartGame(); // Restart the game (sets targetWord, etc.)
-            document.addEventListener('keydown', handleKeyDown); // Attach event listener
+            restartGame().then(() => {
+                document.addEventListener('keydown', handleKeyDown);
+            });
 
         } else {
             // User is signed out
@@ -125,23 +132,56 @@ userPhotoImg.addEventListener("click", () => {
 })
 
 // --- Restart Game Function ---
-function restartGame() {
+async function restartGame() {
     attempts = 0;
-    currentRow = 0; // Reset row
-    currentLetterIndex = 0; // Reset letter index
+    currentRow = 0;
+    currentLetterIndex = 0;
     feedback.textContent = "";
-    scoresContainer.style.display = 'none'; // Hide scores if restarting
+    scoresContainer.style.display = 'none';
+    teamScoresContainer.style.display = "none";
 
-    // Clear existing boxes and recreate them
-    createLetterBoxes(); // Call this to recreate the boxes
+    createLetterBoxes();
 
-    targetWord = getWordOfTheDay();
+    targetWord = await getWordOfTheDay(); // Await the result again
     gameContainer.style.display = 'block';
     console.log("target word is " + targetWord);
 }
 
 
 restartButton.addEventListener('click', restartGame);
+
+// --- Show Scores Function --- (MODIFIED - Added hiding of team scores)
+scoresButton.addEventListener('click', () => {
+    displayScores(); // Call the function to fetch and display
+    hideGameAndTeamScores();
+    scoresContainer.style.display = 'block'; // Show the scores container
+});
+
+closeScoresButton.addEventListener('click', () => {
+    scoresContainer.style.display = 'none';
+    gameContainer.style.display = "block";
+})
+
+ // --- Show Team Scores Function --- (NEW)
+teamScoresButton.addEventListener('click', () => {
+    displayTeamScores();
+    hideGameAndScores();
+    teamScoresContainer.style.display = 'block';
+});
+
+closeTeamScoresButton.addEventListener('click', () => {
+    teamScoresContainer.style.display = 'none';
+    gameContainer.style.display = "block";
+})
+
+  function hideGameAndScores() {
+    gameContainer.style.display = 'none';
+    scoresContainer.style.display = 'none';
+}
+function hideGameAndTeamScores(){
+    gameContainer.style.display = 'none';
+    teamScoresContainer.style.display = 'none';
+}
 
 // --- Show Scores Function ---
 scoresButton.addEventListener('click', () => {
@@ -235,8 +275,8 @@ function deleteLetter() {
     }
 }
 
-// --- Submit Guess (Modified) ---
-async function submitGuess() {
+ // --- Submit Guess (Modified) ---
+ async function submitGuess() {
     console.log("submitGuess called");
     if (currentLetterIndex !== 5) {
         feedback.textContent = "Enter a 5-letter word.";
@@ -470,18 +510,36 @@ async function displayScores() {
 }
 
 // --- getWordOfTheDay ---
-    function getWordOfTheDay() {
+    async function getWordOfTheDay() {
         if (wordList.length === 0) {
-            console.warn("Word list is empty. Returning default word.");
-            return "apple"; // Return a default if list is empty
+            console.warn("Word list is empty. Returning 'cluck'.");
+            return "cluck";
         }
 
         const now = new Date();
-        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Convert to GMT
-        const seed = gmtDate.getFullYear() * 10000 + (gmtDate.getMonth() + 1) * 100 + gmtDate.getDate();
+        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+        const year = gmtDate.getUTCFullYear();
+        const month = gmtDate.getUTCMonth();
+        const day = gmtDate.getUTCDate();
+        const seed = year * 10000 + (month + 1) * 100 + day;
         const rng = mulberry32(seed);
+
         const randomIndex = Math.floor(rng() * wordList.length);
-        return wordList[randomIndex];
+        const potentialWord = wordList[randomIndex];
+
+        // Use isValidWord to check against the dictionary API
+        try {
+            if (await isValidWord(potentialWord)) {
+                console.log("Word of the day:", potentialWord);
+                return potentialWord;
+            } else {
+                console.warn("Selected word was invalid (API check). Returning 'cluck'.");
+                return "cluck";
+            }
+        } catch (error) {
+            console.error("Error checking word validity:", error);
+            return "cluck"; // Return "cluck" on any error
+        }
     }
 
     function mulberry32(a) {
@@ -492,4 +550,62 @@ async function displayScores() {
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         }
     }
+
+
+    //---------- NEW FUNCTION -------------//
+async function displayTeamScores() {
+    teamHistogramContainer.innerHTML = ''; // Clear previous histogram
+
+    try {
+        const querySnapshot = await db.collection('games').get(); // Get ALL games
+
+        if (querySnapshot.empty) {
+            teamHistogramContainer.innerHTML = '<p>No team scores found.</p>';
+            return;
+        }
+
+        const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+        querySnapshot.forEach(doc => { // Loop through ALL games
+            const turns = doc.data().turns;
+            if (turnCounts.hasOwnProperty(turns)) {
+                turnCounts[turns]++;
+            }
+        });
+
+        let maxCount = Math.max(...Object.values(turnCounts));
+        if (maxCount === 0) {
+            teamHistogramContainer.innerHTML = '<p>No games played yet.</p>';
+            return;
+        }
+
+        for (let i = 1; i <= 6; i++) {
+            const barHeight = (turnCounts[i] / maxCount) * 100;
+            const bar = document.createElement('div');
+            bar.classList.add('bar');
+            bar.style.height = `${barHeight}%`;
+            bar.setAttribute('data-turns', i);
+             const barLabel = document.createElement('span');
+            barLabel.classList.add("bar-label");
+            barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : ""; // Only if > 0
+            bar.appendChild(barLabel);
+            teamHistogramContainer.appendChild(bar);
+        }
+
+        // Add "failed" bar
+        const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
+        const failBar = document.createElement('div');
+        failBar.classList.add('bar');
+        failBar.style.height = `${failBarHeight}%`;
+        failBar.setAttribute('data-turns', 'failed');
+        const failBarLabel = document.createElement('span');
+        failBarLabel.classList.add("bar-label");
+        failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
+        failBar.appendChild(failBarLabel);
+        teamHistogramContainer.appendChild(failBar);
+
+    } catch (error) {
+        console.error("Error fetching team scores:", error);
+        teamHistogramContainer.innerHTML = '<p>Error loading team scores.</p>';
+    }
+}
 });

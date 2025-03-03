@@ -21,7 +21,8 @@
                 <button id="sign-out-button">Sign Out</button>
             </div>
             <button id="restart-button">Restart Game</button>
-            <button id="scores-button">Previous Scores</button>  </div>
+            <button id="scores-button">Previous Scores</button>
+            <button id="team-scores-button">Team Scores</button> </div>
 
         <button id="sign-in-button">Sign in with Google</button>
 
@@ -31,8 +32,8 @@
         </div>
 
         <div id="scores-container">
-            <button id="close-scores-button"><span class="close-icon">&times;</span></button> <h2>Previous Scores</h2>
-             <div id="histogram-wrapper">
+             <h2>Previous Scores</h2>
+              <div id="histogram-wrapper">
                  <div class = "y-axis-label">Number of Games</div>
                 <div id="histogram"></div>
                     <div id="x-axis-labels">
@@ -45,6 +46,24 @@
                         <span>Fail</span>
                     </div>
             </div>
+             <button id="close-scores-button">Close</button>
+        </div>
+         <div id="team-scores-container"> <h2>Team Scores</h2>
+            <div id="team-histogram-wrapper">
+              <div class = "y-axis-label">Number of Games</div>
+                <div id="team-histogram"></div>
+                    <div id="x-axis-labels">
+                        <span>1</span>
+                        <span>2</span>
+                        <span>3</span>
+                        <span>4</span>
+                        <span>5</span>
+                        <span>6</span>
+                        <span>Fail</span>
+                    </div>
+            </div>
+
+            <button id="close-team-scores-button">Close</button>
         </div>
     </div>
 
