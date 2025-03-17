@@ -249,6 +249,22 @@ h1 {
   position: relative; /*For positioning the y-axis*/
 }
 
+#team-histogram {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 columns */
+    gap: 5px;
+    width: 100%;
+    height: 200px;
+    border-bottom: 2px solid black; /* X-axis */
+    padding-top: 20px;  /* Space for bar labels */
+    position: relative; /* For y-axis label*/
+    align-items: end; /*  Align items to the bottom */
+
+}
+#team-histogram-wrapper{
+      position: relative;
+}
+
 .y-axis-label {
     position: absolute;
     left: -35px;
@@ -259,7 +275,7 @@ h1 {
 
 }
 
-#histogram,  #team-histogram{
+#histogram {
     display: grid;
     grid-template-columns: repeat(7, 1fr); /* 7 columns */
      /* grid-template-rows: auto 1fr;  Remove this */
