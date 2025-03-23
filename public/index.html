@@ -48,22 +48,32 @@
              <button id="close-scores-button">Close</button>
         </div>
 
-         <div id="team-scores-container"> <h2>Team Scores</h2>
-            <div id="team-histogram-wrapper">
-              <div class = "y-axis-label">Number of Games</div>
-                <div id="team-histogram"></div>  <div id="x-axis-labels">
-                        <span>1</span>
-                        <span>2</span>
-                        <span>3</span>
-                        <span>4</span>
-                        <span>5</span>
-                        <span>6</span>
-                        <span>Fail</span>
-                    </div>
-            </div>
+        <div id="team-list-container" style="display: none;">
+            <h2>Your Teams</h2>
+            <ul id="team-list">
+                </ul>
+            <button id="close-team-list-button">Close</button>
+        </div>
 
+        <div id="team-scores-container">
+            <h2 id="team-name-title">Team Scores</h2>
+            <div id="team-histogram-wrapper">
+                <div class="y-axis-label">Number of Games</div>
+                <div id="team-histogram"></div>
+                <div id="x-axis-labels">
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>Fail</span>
+                </div>
+            </div>
+            <button id="back-to-team-list-button">Back to Teams</button>
             <button id="close-team-scores-button">Close</button>
         </div>
+        
 
         <div id="group-creation" style="display: none;">
             <h2>Create a Group</h2>

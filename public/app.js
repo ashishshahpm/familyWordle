@@ -51,12 +51,7 @@ const scoresButton = document.getElementById('scores-button');
 const scoresContainer = document.getElementById('scores-container');
 const histogramContainer = document.getElementById('histogram');
 const closeScoresButton = document.getElementById('close-scores-button');
-//Add team elements
-const teamScoresButton = document.getElementById('team-scores-button');
-const teamScoresContainer = document.getElementById('team-scores-container');
-const teamHistogramContainer = document.getElementById('team-histogram');
-const closeTeamScoresButton = document.getElementById('close-team-scores-button');
-const createGroupButton = document.getElementById('create-group-button'); // NEW
+
 //Add Group elements
 const groupNameInput = document.getElementById('group-name'); // NEW
 const inviteLinkInput = document.getElementById('invite-link'); // NEW
@@ -67,6 +62,21 @@ const invitedMemberEmailInput = document.getElementById('invited-member-email');
 const addMemberButton = document.getElementById('add-member');
 const copyLinkButton = document.getElementById('copy-link');
 let currentGroupId = null; //NEW
+
+//Add team elements
+const teamScoresContainer = document.getElementById('team-scores-container');
+const teamHistogramContainer = document.getElementById('team-histogram');
+const closeTeamScoresButton = document.getElementById('close-team-scores-button');
+const createGroupButton = document.getElementById('create-group-button'); // NEW
+const teamScoresButton = document.getElementById('team-scores-button');
+const teamListContainer = document.getElementById('team-list-container');
+const teamList = document.getElementById('team-list');
+const closeTeamListButton = document.getElementById('close-team-list-button');
+const teamNameTitle = document.getElementById('team-name-title');
+const backToTeamListButton = document.getElementById('back-to-team-list-button');
+const teamHistogramDiv = document.getElementById('team-histogram');
+
+let currentDisplayMode = 'list'; // 'list' or 'scores'
 
 let wordList = []; // Global to store word list
 
@@ -658,147 +668,6 @@ function mulberry32(a) {
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     }
 }
-// Function to display team scores for each team the user is part of
-
-async function displayTeamScores() {
-    const teamHistogramDiv = document.getElementById('team-histogram');
-    teamHistogramDiv.innerHTML = ''; // Clear previous histograms
-    console.log('displayTeamScores function called');
-
-    try {
-        // 1. Get the list of groups the current user is a member of
-        if (!auth.currentUser) {
-            teamHistogramDiv.innerHTML = '<p>Please sign in to see team scores.</p>';
-            console.log('User not signed in.');
-            return;
-        }
-        console.log('Current user UID:', auth.currentUser.uid);
-
-        const groupsSnapshot = await db.collection('groups')
-            .where('members', 'array-contains', auth.currentUser.uid)
-            .get();
-
-        if (groupsSnapshot.empty) {
-            teamHistogramDiv.innerHTML = '<p>You are not a member of any teams.</p>';
-            console.log('User is not a member of any groups.');
-            return;
-        }
-
-        console.log('Groups where user is a member:', groupsSnapshot.docs.map(doc => doc.id));
-
-        for (const groupDoc of groupsSnapshot.docs) {
-            const groupId = groupDoc.id;
-            const groupName = groupDoc.data().groupName || 'Unnamed Group';
-            const groupMembers = groupDoc.data().members ||``;
-            const groupCreatedAtTimestamp = groupDoc.data().createdAt;
-            const groupCreatedAtDate = groupCreatedAtTimestamp ? groupCreatedAtTimestamp.toDate() : null;
-
-            console.log('Processing group:', groupId, 'Name:', groupName, 'Members:', groupMembers, 'Created At:', groupCreatedAtDate);
-
-            if (!groupCreatedAtDate) {
-                console.log(`Group ${groupId} missing creation timestamp.`);
-                continue;
-            }
-            if (groupMembers.length === 0) {
-                const groupSection = document.createElement('div');
-                groupSection.innerHTML = `<h3>${groupName}</h3><p>No members in this group.</p>`;
-                teamHistogramDiv.appendChild(groupSection);
-                continue;
-            }
-
-            const querySnapshot = await db.collection('games')
-                .where('userId', 'in', groupMembers)
-                .get();
-
-            console.log(`Games found for members of group ${groupId}:`, querySnapshot.size);
-
-            const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
-            let gamesSinceCreation = 0;
-            querySnapshot.forEach(doc => {
-                const gameDateString = doc.data().date;
-                if (gameDateString) {
-                    const gameDate = new Date(gameDateString);
-                    if (gameDate >= groupCreatedAtDate) {
-                        gamesSinceCreation++;
-                        const turns = doc.data().turns;
-                        if (turnCounts.hasOwnProperty(turns)) {
-                            turnCounts[turns]++;
-                        }
-                    }
-                }
-            });
-            console.log(`Games found for members of group ${groupId} since creation:`, gamesSinceCreation);
-            console.log(`Turn counts for group ${groupId} (since creation):`, turnCounts);
-
-            if (gamesSinceCreation === 0) {
-                const groupSection = document.createElement('div');
-                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
-                teamHistogramDiv.appendChild(groupSection);
-                continue;
-            }
-
-            let maxCount = Math.max(...Object.values(turnCounts));
-            if (maxCount === 0) {
-                const groupSection = document.createElement('div');
-                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
-                teamHistogramDiv.appendChild(groupSection);
-                continue;
-            }
-
-            // Add group title
-            const groupTitle = document.createElement('h3');
-            groupTitle.textContent = groupName;
-            teamHistogramDiv.appendChild(groupTitle);
-
-            // Create a container for the bars
-            const barsContainer = document.createElement('div');
-            barsContainer.classList.add('bars-container');
-            barsContainer.style.display = 'flex';
-            barsContainer.style.justifyContent = 'space-between';
-            barsContainer.style.alignItems = 'flex-end';
-            barsContainer.style.height = '100px';
-            barsContainer.style.padding = '0 5px';
-            barsContainer.style.marginBottom = '20px'; // Add some space below the histogram
-
-            // --- Draw histogram bars for this group ---
-            for (let i = 1; i <= 6; i++) {
-                const barHeight = (turnCounts[i] / maxCount) * 100;
-                const bar = document.createElement('div');
-                bar.classList.add('bar');
-                bar.style.height = `${barHeight}%`;
-                bar.style.width = '14%';
-                bar.setAttribute('data-turns', i);
-                const barLabel = document.createElement('span');
-                barLabel.classList.add("bar-label");
-                barLabel.style.fontSize = '0.7em';
-                barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
-                bar.appendChild(barLabel);
-                barsContainer.appendChild(bar);
-            }
-
-            // Add "failed" bar
-            const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
-            const failBar = document.createElement('div');
-            failBar.classList.add('bar');
-            failBar.style.height = `${failBarHeight}%`;
-            failBar.style.width = '14%';
-            failBar.setAttribute('data-turns', 'failed');
-            const failBarLabel = document.createElement('span');
-            failBarLabel.classList.add("bar-label");
-            failBarLabel.style.fontSize = '0.7em';
-            failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
-            failBar.appendChild(failBarLabel);
-            barsContainer.appendChild(failBar);
-            // --- End of drawing histogram bars ---
-
-            teamHistogramDiv.appendChild(barsContainer);
-        }
-
-    } catch (error) {
-        console.error("Error fetching team scores:", error);
-        teamHistogramDiv.innerHTML = '<p>Error loading team scores.</p>';
-    }
-}
 
 // --- Create Group Button Listener 
 createGroupButton.addEventListener('click', async () => {
@@ -909,27 +778,181 @@ addMemberButton.addEventListener('click', async () => {
 
 
 
-  // --- Check for Invitation Link ---
-    function checkInvite() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const groupId = urlParams.get('groupId');
-        if (groupId) {
-            // Store the group ID (e.g., in localStorage)
-            localStorage.setItem('pendingGroupId', groupId);
-            joinGroup({ groupId: groupId }).then((result) => {
-            if (result.data.success) {
-                // Remove the query parameter
-                const newUrl = window.location.origin + window.location.pathname;
-                window.history.replaceState({ path: newUrl }, '', newUrl);
-                alert("Successfully joined the group!");
-                localStorage.removeItem('pendingGroupId')
+// --- Check for Invitation Link ---
+function checkInvite() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('groupId');
+    if (groupId) {
+        // Store the group ID (e.g., in localStorage)
+        localStorage.setItem('pendingGroupId', groupId);
+        joinGroup({ groupId: groupId }).then((result) => {
+        if (result.data.success) {
+            // Remove the query parameter
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+            alert("Successfully joined the group!");
+            localStorage.removeItem('pendingGroupId')
 
-            }
-        }).catch(error => {
-                console.log("Error Joining Group:", error);
-                alert("Error Joining group:", error.message);
-        })
         }
-    }    
+    }).catch(error => {
+            console.log("Error Joining Group:", error);
+            alert("Error Joining group:", error.message);
+    })
+    }
+}   
+ 
+// Function to show the team list
+function showTeamList() {
+    currentDisplayMode = 'list';
+    teamListContainer.style.display = 'block';
+    teamScoresContainer.style.display = 'none';
+    teamList.innerHTML = ''; // Clear previous list
+
+    if (!auth.currentUser) {
+        teamList.innerHTML = '<li>Please sign in to see your teams.</li>';
+        return;
+    }
+
+    db.collection('groups')
+        .where('members', 'array-contains', auth.currentUser.uid)
+        .get()
+        .then(snapshot => {
+            if (snapshot.empty) {
+                teamList.innerHTML = '<li>You are not a member of any teams.</li>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const groupName = doc.data().groupName || 'Unnamed Group';
+                const listItem = document.createElement('li');
+                listItem.textContent = groupName;
+                listItem.style.cursor = 'pointer';
+                listItem.style.padding = '8px 0';
+                listItem.style.borderBottom = '1px solid #eee';
+                listItem.addEventListener('click', () => displaySingleTeamScores(doc.id, groupName));
+                teamList.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error("Error fetching teams:", error);
+            teamList.innerHTML = '<li>Error loading your teams.</li>';
+        });
+}
+
+// Function to display the scores for a single team
+function displaySingleTeamScores(groupId, groupName) {
+    currentDisplayMode = 'scores';
+    teamListContainer.style.display = 'none';
+    teamScoresContainer.style.display = 'block';
+    teamNameTitle.textContent = groupName + " Scores";
+    teamHistogramDiv.innerHTML = ''; // Clear previous histogram
+
+    if (!auth.currentUser) {
+        teamHistogramDiv.innerHTML = '<p>Please sign in to see team scores.</p>';
+        return;
+    }
+
+    db.collection('groups').doc(groupId).get()
+        .then(groupDoc => {
+            if (!groupDoc.exists) {
+                teamHistogramDiv.innerHTML = '<p>Team not found.</p>';
+                return;
+            }
+            const groupMembers = groupDoc.data().members ||``;
+            const groupCreatedAtTimestamp = groupDoc.data().createdAt;
+            const groupCreatedAtDate = groupCreatedAtTimestamp ? groupCreatedAtTimestamp.toDate() : null;
+
+            if (!groupCreatedAtDate || groupMembers.length === 0) {
+                teamHistogramDiv.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
+                return;
+            }
+
+            return db.collection('games')
+                .where('userId', 'in', groupMembers)
+                .get()
+                .then(querySnapshot => {
+                    const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+                    let gamesSinceCreation = 0;
+                    querySnapshot.forEach(doc => {
+                        const gameDateString = doc.data().date;
+                        if (gameDateString) {
+                            const gameDate = new Date(gameDateString);
+                            if (gameDate >= groupCreatedAtDate) {
+                                gamesSinceCreation++;
+                                const turns = doc.data().turns;
+                                if (turnCounts.hasOwnProperty(turns)) {
+                                    turnCounts[turns]++;
+                                }
+                            }
+                        }
+                    });
+
+                    if (gamesSinceCreation === 0) {
+                        teamHistogramDiv.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
+                        return;
+                    }
+
+                    let maxCount = Math.max(...Object.values(turnCounts));
+                    if (maxCount === 0) maxCount = 1; // Avoid division by zero
+
+                    const barsContainer = document.createElement('div');
+                    barsContainer.classList.add('bars-container');
+                    barsContainer.style.display = 'flex';
+                    barsContainer.style.justifyContent = 'space-around';
+                    barsContainer.style.alignItems = 'flex-end';
+                    barsContainer.style.height = '150px';
+                    barsContainer.style.padding = '0 10px';
+                    barsContainer.style.borderBottom = '2px solid black';
+
+                    for (let i = 1; i <= 6; i++) {
+                        const barHeight = (turnCounts[i] / maxCount) * 100;
+                        const bar = document.createElement('div');
+                        bar.classList.add('bar');
+                        bar.style.height = `${barHeight}%`;
+                        bar.style.width = `calc(100% / 9)`;
+                        bar.style.margin = '0 2px';
+                        bar.setAttribute('data-turns', i);
+                        const barLabel = document.createElement('span');
+                        barLabel.classList.add("bar-label");
+                        barLabel.style.fontSize = '0.8em';
+                        barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
+                        bar.appendChild(barLabel);
+                        barsContainer.appendChild(bar);
+                    }
+
+                    const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
+                    const failBar = document.createElement('div');
+                    failBar.classList.add('bar');
+                    failBar.style.height = `${failBarHeight}%`;
+                    failBar.style.width = `calc(100% / 9)`;
+                    failBar.style.margin = '0 2px';
+                    failBar.setAttribute('data-turns', 'failed');
+                    const failBarLabel = document.createElement('span');
+                    failBarLabel.classList.add("bar-label");
+                    failBarLabel.style.fontSize = '0.8em';
+                    failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
+                    failBar.appendChild(failBarLabel);
+                    barsContainer.appendChild(failBar);
+
+                    teamHistogramDiv.appendChild(barsContainer);
+                });
+        })
+        .catch(error => {
+            console.error("Error fetching team scores:", error);
+            teamHistogramDiv.innerHTML = '<p>Error loading team scores.</p>';
+        });
+}
+
+// Event listeners
+teamScoresButton.addEventListener('click', showTeamList);
+closeTeamListButton.addEventListener('click', () => teamListContainer.style.display = 'none');
+backToTeamListButton.addEventListener('click', showTeamList);
+closeTeamScoresButton.addEventListener('click', () => {
+    if (currentDisplayMode === 'scores') {
+        showTeamList(); // Go back to the list if showing scores
+    } else {
+        teamListContainer.style.display = 'none'; // Close if showing list
+    }
+});
+  
 
 });
