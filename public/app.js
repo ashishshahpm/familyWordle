@@ -331,11 +331,18 @@ function createLetterBoxes() {
 
 
 
-// --- Helper function for keydown (to allow easy removal) ---
-//We use this, so that we have something to remove, when we remove the event listener.
 function handleKeyDown(event) {
     if (attempts >= maxAttempts) return; // Prevent input after game over
     if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
+
+    const target = event.target; // Get the element where the key press happened
+    const groupNameInput = document.getElementById('group-name'); // Get the group name input field
+    const addMembersInput = document.getElementById('invited-member-email'); // Get the add members input field
+
+    // If the key press happened inside the group name input OR the add members input, do nothing
+    if (target === groupNameInput || target === addMembersInput) {
+        return;
+    }
 
     const key = event.key.toLowerCase();
     // console.log("Key pressed:", key);
@@ -345,8 +352,6 @@ function handleKeyDown(event) {
     } else if (key === 'backspace') {
         deleteLetter();
     } else if (/^[a-z]$/.test(key)) { // Check if it's a letter
-        // *** KEY CHANGE IS HERE ***
-        const target = event.target; // Get the element that triggered the event
         // console.log (target)
         if (target.classList.contains('letter-box')) {
             addLetter(key); // Add to letter box
@@ -356,7 +361,6 @@ function handleKeyDown(event) {
         }
     }
 }
-
 
 function addLetter(letter) {
     // console.log("addLetter called with:", letter);
@@ -657,13 +661,14 @@ function mulberry32(a) {
 // Function to display team scores for each team the user is part of
 
 async function displayTeamScores() {
-    teamHistogramContainer.innerHTML = ''; // Clear previous histograms
+    const teamHistogramDiv = document.getElementById('team-histogram');
+    teamHistogramDiv.innerHTML = ''; // Clear previous histograms
     console.log('displayTeamScores function called');
 
     try {
         // 1. Get the list of groups the current user is a member of
         if (!auth.currentUser) {
-            teamHistogramContainer.innerHTML = '<p>Please sign in to see team scores.</p>';
+            teamHistogramDiv.innerHTML = '<p>Please sign in to see team scores.</p>';
             console.log('User not signed in.');
             return;
         }
@@ -674,71 +679,86 @@ async function displayTeamScores() {
             .get();
 
         if (groupsSnapshot.empty) {
-            teamHistogramContainer.innerHTML = '<p>You are not a member of any teams.</p>';
+            teamHistogramDiv.innerHTML = '<p>You are not a member of any teams.</p>';
             console.log('User is not a member of any groups.');
             return;
         }
 
         console.log('Groups where user is a member:', groupsSnapshot.docs.map(doc => doc.id));
 
-        // 2. Iterate through each group
         for (const groupDoc of groupsSnapshot.docs) {
             const groupId = groupDoc.id;
             const groupName = groupDoc.data().groupName || 'Unnamed Group';
-            const groupMembers = groupDoc.data().members ||; // Get members of the current group
-            const groupCreatedAt = groupDoc.data().createdAt; // Get group creation timestamp
+            const groupMembers = groupDoc.data().members ||``;
+            const groupCreatedAtTimestamp = groupDoc.data().createdAt;
+            const groupCreatedAtDate = groupCreatedAtTimestamp ? groupCreatedAtTimestamp.toDate() : null;
 
-            console.log('Processing group:', groupId, 'Name:', groupName, 'Members:', groupMembers, 'Created At:', groupCreatedAt);
+            console.log('Processing group:', groupId, 'Name:', groupName, 'Members:', groupMembers, 'Created At:', groupCreatedAtDate);
 
-            if (!groupCreatedAt) {
+            if (!groupCreatedAtDate) {
                 console.log(`Group ${groupId} missing creation timestamp.`);
-                continue; // Skip if no creation date
+                continue;
             }
             if (groupMembers.length === 0) {
                 const groupSection = document.createElement('div');
                 groupSection.innerHTML = `<h3>${groupName}</h3><p>No members in this group.</p>`;
-                teamHistogramContainer.appendChild(groupSection);
+                teamHistogramDiv.appendChild(groupSection);
                 continue;
             }
 
-            // 3. Fetch games for all members of the current group since the group was created
             const querySnapshot = await db.collection('games')
-                .where('userId', 'in', groupMembers) // Get games played by any member of the group
-                .where('timestamp', '>=', groupCreatedAt) // Only games since group creation
+                .where('userId', 'in', groupMembers)
                 .get();
 
-            console.log(`Games found for members of group ${groupId} since creation:`, querySnapshot.size);
-
-            if (querySnapshot.empty) {
-                const groupSection = document.createElement('div');
-                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
-                teamHistogramContainer.appendChild(groupSection);
-                continue; // Move to the next group
-            }
+            console.log(`Games found for members of group ${groupId}:`, querySnapshot.size);
 
             const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+            let gamesSinceCreation = 0;
             querySnapshot.forEach(doc => {
-                const turns = doc.data().turns;
-                if (turnCounts.hasOwnProperty(turns)) {
-                    turnCounts[turns]++;
+                const gameDateString = doc.data().date;
+                if (gameDateString) {
+                    const gameDate = new Date(gameDateString);
+                    if (gameDate >= groupCreatedAtDate) {
+                        gamesSinceCreation++;
+                        const turns = doc.data().turns;
+                        if (turnCounts.hasOwnProperty(turns)) {
+                            turnCounts[turns]++;
+                        }
+                    }
                 }
             });
+            console.log(`Games found for members of group ${groupId} since creation:`, gamesSinceCreation);
             console.log(`Turn counts for group ${groupId} (since creation):`, turnCounts);
+
+            if (gamesSinceCreation === 0) {
+                const groupSection = document.createElement('div');
+                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
+                teamHistogramDiv.appendChild(groupSection);
+                continue;
+            }
 
             let maxCount = Math.max(...Object.values(turnCounts));
             if (maxCount === 0) {
                 const groupSection = document.createElement('div');
                 groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
-                teamHistogramContainer.appendChild(groupSection);
-                continue; // Move to the next group
+                teamHistogramDiv.appendChild(groupSection);
+                continue;
             }
 
-            // Create a container for the group's histogram
-            const groupHistogramContainer = document.createElement('div');
-            groupHistogramContainer.classList.add('team-histogram');
-            groupHistogramContainer.innerHTML = `<h3>${groupName}</h3>`;
+            // Add group title
+            const groupTitle = document.createElement('h3');
+            groupTitle.textContent = groupName;
+            teamHistogramDiv.appendChild(groupTitle);
+
+            // Create a container for the bars
             const barsContainer = document.createElement('div');
-            barsContainer.classList.add('bars-container'); // For styling if needed
+            barsContainer.classList.add('bars-container');
+            barsContainer.style.display = 'flex';
+            barsContainer.style.justifyContent = 'space-between';
+            barsContainer.style.alignItems = 'flex-end';
+            barsContainer.style.height = '100px';
+            barsContainer.style.padding = '0 5px';
+            barsContainer.style.marginBottom = '20px'; // Add some space below the histogram
 
             // --- Draw histogram bars for this group ---
             for (let i = 1; i <= 6; i++) {
@@ -746,9 +766,11 @@ async function displayTeamScores() {
                 const bar = document.createElement('div');
                 bar.classList.add('bar');
                 bar.style.height = `${barHeight}%`;
+                bar.style.width = '14%';
                 bar.setAttribute('data-turns', i);
                 const barLabel = document.createElement('span');
                 barLabel.classList.add("bar-label");
+                barLabel.style.fontSize = '0.7em';
                 barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
                 bar.appendChild(barLabel);
                 barsContainer.appendChild(bar);
@@ -759,21 +781,22 @@ async function displayTeamScores() {
             const failBar = document.createElement('div');
             failBar.classList.add('bar');
             failBar.style.height = `${failBarHeight}%`;
+            failBar.style.width = '14%';
             failBar.setAttribute('data-turns', 'failed');
             const failBarLabel = document.createElement('span');
             failBarLabel.classList.add("bar-label");
+            failBarLabel.style.fontSize = '0.7em';
             failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
             failBar.appendChild(failBarLabel);
             barsContainer.appendChild(failBar);
             // --- End of drawing histogram bars ---
 
-            groupHistogramContainer.appendChild(barsContainer);
-            teamHistogramContainer.appendChild(groupHistogramContainer);
+            teamHistogramDiv.appendChild(barsContainer);
         }
 
     } catch (error) {
         console.error("Error fetching team scores:", error);
-        teamHistogramContainer.innerHTML = '<p>Error loading team scores.</p>';
+        teamHistogramDiv.innerHTML = '<p>Error loading team scores.</p>';
     }
 }
 
