@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     console.log("🔥 Initializing Firebase...");
 
-    // Firebase configuration (REPLACE WITH YOUR ACTUAL CONFIG)
+    // Firebase configuration 
     const firebaseConfig = {
         apiKey: "AIzaSyAF8N4oOo2Kv0W5rjO5Af8Dk15YwxR_p50",
         authDomain: "familywordle-c8402.firebaseapp.com",
@@ -17,58 +17,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const functions = firebase.functions();
+/*
 console.log("functions object:", functions); // Log the functions object
 console.log("httpsCallable property:", functions ? functions.httpsCallable : 'functions is null/undefined'); // Check for httpsCallable
 console.log("✅ Firebase Initialized");
+*/
 
 // Get references to your Cloud Functions (Namespaced API)
 const createGroup = functions.httpsCallable('createGroup');
-console.log("createGroup function:", createGroup); // Add this
+//console.log("createGroup function:", createGroup); // Add this
 const addUserToGroup = functions.httpsCallable('addUserToGroup');
 const joinGroup = functions.httpsCallable('joinGroup');
-
-
-//Test setup
-const testAuth = functions.httpsCallable('testAuth');
-
-const testAuthButton = document.getElementById('test-auth-button');
-if (testAuthButton) {
-    testAuthButton.addEventListener('click', async () => {
-        if (!auth.currentUser) {
-            alert("Please sign in to test auth.");
-            return;
-        }
-        try {
-            const functionUrl = 'https://testauthdirect-ocndjzvsea-uc.a.run.app';
-            const idToken = await auth.currentUser.getIdToken();
-
-            const response = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: {} }), // Send an empty data object
-            });
-
-            if (!response.ok) {
-                console.error("Direct POST Error Status:", response.status);
-                const errorText = await response.text();
-                console.error("Direct POST Error Body:", errorText);
-                alert("Direct POST Failed: " + response.status + " " + errorText);
-                return;
-            }
-
-            const result = await response.json();
-            console.log("Direct POST Result:", result);
-            alert("Direct POST Success: " + result.message);
-
-        } catch (error) {
-            console.error("Direct POST Fetch Error:", error);
-            alert("Direct POST Fetch Failed: " + error.message);
-        }
-    });
-}
 
 // Game setup
 let targetWord = "apple"; // Default, will be overwritten
@@ -111,12 +70,87 @@ let currentGroupId = null; //NEW
 
 let wordList = []; // Global to store word list
 
+window.onload = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupIdFromURL = urlParams.get('groupId');
+
+    if (groupIdFromURL) {
+        console.log("Found groupId in URL:", groupIdFromURL);
+        // Optionally display a "Joining group..." message
+        const joinGroupMessage = document.getElementById('join-group-message'); // Add this ID to an element in your HTML
+        if (joinGroupMessage) {
+            joinGroupMessage.style.display = 'block';
+            joinGroupMessage.textContent = 'Joining group...';
+        }
+
+        if (auth.currentUser) {
+            console.log("User is logged in, calling addUserToGroupMembers");
+            await addUserToGroupMembers(auth.currentUser, groupIdFromURL);
+        } else {
+            // If not logged in, store the groupId and redirect to login
+            console.log("User not logged in, storing pendingGroupId");
+            localStorage.setItem('pendingGroupId', groupIdFromURL);
+            // Update your sign-in button's onclick to handle this
+            const signInButton = document.getElementById('sign-in-button'); // Make sure you have a sign-in button
+            if (signInButton) {
+                signInButton.onclick = () => {
+                    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+                };
+            }
+            if (joinGroupMessage) {
+                joinGroupMessage.textContent = 'Please sign in to join the group.';
+            }
+        }
+    }
+};
+
+//Add user to group function
+async function addUserToGroupMembers(user, groupId) {
+    console.log("addUserToGroupMembers called with user:", user.uid, "and groupId:", groupId);
+    try {
+        const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/joinGroupByLink'; // Use the new function URL
+        const idToken = await user.getIdToken();
+
+        const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + idToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ groupId: groupId }),
+        });
+
+        const joinGroupMessage = document.getElementById('join-group-message');
+        if (response.ok) {
+            console.log(`User ${user.uid} added to group ${groupId}`);
+            if (joinGroupMessage) {
+                joinGroupMessage.textContent = 'Successfully joined the group!';
+                setTimeout(() => joinGroupMessage.style.display = 'none', 3000);
+            }
+            // Optionally redirect the user or update the UI
+            window.history.replaceState({}, document.title, window.location.pathname); // Remove groupId from URL
+            displayTeamScores(); // Refresh the histograms
+        } else {
+            console.error("Error joining group:", response.status, await response.text());
+            if (joinGroupMessage) {
+                joinGroupMessage.textContent = 'Failed to join group: ' + response.status;
+            }
+        }
+    } catch (error) {
+        console.error("Error calling joinGroupByLink function:", error);
+        const joinGroupMessage = document.getElementById('join-group-message');
+        if (joinGroupMessage) {
+            joinGroupMessage.textContent = 'Error joining group.';
+        }
+    }
+}
+
 // --- Load Word List from Firestore ---
 async function loadWordList() {
     try {
         const querySnapshot = await db.collection('words').get();
         wordList = querySnapshot.docs.map(doc => doc.data().word);
-        console.log("Word list loaded:", wordList.length, "words");
+       // console.log("Word list loaded:", wordList.length, "words");
         if (wordList.length === 0) {
             console.warn("Word list from Firestore is empty!");
             feedback.textContent = "Error: Word list is empty. Cannot start game.";
@@ -154,8 +188,22 @@ loadWordList().then(() => {
     createLetterBoxes(); // Create boxes *before* auth state change
 
     auth.onAuthStateChanged((user) => {
+        
         if (user) {
             // User is signed in
+            console.log('User signed in:', user.uid);
+            // Check for pending group invite
+            const pendingGroupId = localStorage.getItem('pendingGroupId');
+            if (pendingGroupId) {
+                joinGroup({groupId: pendingGroupId}).then((result) => { //try joining group.
+                    if(result.data.success){
+                        console.log("Successfully joined the group")
+                    }
+                    localStorage.removeItem('pendingGroupId'); // Clear the pending invite
+                }).catch(error => { //catch any error
+                    console.error("Error joining group", error)
+                })
+            }
             userNameSpan.textContent = user.displayName;
             userPhotoImg.src = user.photoURL || ''; //Set src, handle null
             userPhotoImg.style.display = user.photoURL ? 'inline' : 'none';
@@ -172,19 +220,6 @@ loadWordList().then(() => {
             restartGame().then(() => {
                 document.addEventListener('keydown', handleKeyDown);
             });
-
-            // Check for pending group invite
-            const pendingGroupId = localStorage.getItem('pendingGroupId');
-            if (pendingGroupId) {
-                joinGroup({groupId: pendingGroupId}).then((result) => { //try joining group.
-                    if(result.data.success){
-                        console.log("Successfully joined the group")
-                    }
-                    localStorage.removeItem('pendingGroupId'); // Clear the pending invite
-                }).catch(error => { //catch any error
-                    console.error("Error joining group", error)
-                })
-            }
 
         } else {
             // User is signed out
@@ -223,7 +258,7 @@ async function restartGame() {
 
     targetWord = await getWordOfTheDay(); // Await the result again
     gameContainer.style.display = 'block';
-    console.log("target word is " + targetWord);
+//    console.log("target word is " + targetWord);
 }
 
 
@@ -279,7 +314,7 @@ closeScoresButton.addEventListener('click', () => {
 // --- Game Logic ---
 
 function createLetterBoxes() {
-    console.log("createLetterBoxes called");
+   // console.log("createLetterBoxes called");
     guessesContainer.innerHTML = ''; // Clear any existing boxes
     for (let i = 0; i < maxAttempts; i++) {
         const row = document.createElement('div');
@@ -303,7 +338,7 @@ function handleKeyDown(event) {
     if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
 
     const key = event.key.toLowerCase();
-    console.log("Key pressed:", key);
+    // console.log("Key pressed:", key);
 
     if (key === 'enter') {
         submitGuess();
@@ -312,7 +347,7 @@ function handleKeyDown(event) {
     } else if (/^[a-z]$/.test(key)) { // Check if it's a letter
         // *** KEY CHANGE IS HERE ***
         const target = event.target; // Get the element that triggered the event
-        console.log (target)
+        // console.log (target)
         if (target.classList.contains('letter-box')) {
             addLetter(key); // Add to letter box
         }
@@ -324,12 +359,12 @@ function handleKeyDown(event) {
 
 
 function addLetter(letter) {
-    console.log("addLetter called with:", letter);
+    // console.log("addLetter called with:", letter);
     if (currentLetterIndex < 5) {
         const row = document.getElementById(`row-${currentRow}`);
-        console.log("Current Row:", currentRow);
+        // console.log("Current Row:", currentRow);
         if (!row) {
-            console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
+            // console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
             return; // Exit if row not found
         }
         const boxes = row.querySelectorAll('.letter-box');
@@ -344,17 +379,17 @@ function addLetter(letter) {
 }
 
 function deleteLetter() {
-    console.log("deleteLetter called");
+    // console.log("deleteLetter called");
     if (currentLetterIndex > 0) {
         currentLetterIndex--;
         const row = document.getElementById(`row-${currentRow}`);
         if (!row) {
-            console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
+            // console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
             return; // Exit if row not found
         }
         const boxes = row.querySelectorAll('.letter-box');
         if (currentLetterIndex >= boxes.length) { // Prevent out-of-bounds access
-            console.error("currentLetterIndex out of bounds:", currentLetterIndex);
+            // console.error("currentLetterIndex out of bounds:", currentLetterIndex);
             return;
         }
         boxes[currentLetterIndex].textContent = '';
@@ -376,7 +411,7 @@ function deleteLetter() {
         guess += box.textContent.toLowerCase();
     });
 
-    console.log("Submitting guess:", guess);
+    //console.log("Submitting guess:", guess);
 
     // Check word validity *before* proceeding
     if (!(await isValidWord(guess))) {
@@ -386,7 +421,7 @@ function deleteLetter() {
 
 
     const result = checkGuess(guess);
-    console.log("Result:", JSON.stringify(result));
+    // console.log("Result:", JSON.stringify(result));
 
     // Apply colors
     result.forEach((letterInfo, index) => {
@@ -437,7 +472,7 @@ function checkGuess(guess) {
     let result = [];
     let targetLetters = [...targetWord.toLowerCase()]; // Convert to lowercase AND copy
     let guessLetters = [...guess.toLowerCase()];      // Convert to lowercase AND copy
-    console.log (`Guess is ${guess}`)
+    //console.log (`Guess is ${guess}`)
     console.log (`Target Word is ${targetWord}`)
 
     // First pass: check for exact matches (green)
@@ -452,7 +487,7 @@ function checkGuess(guess) {
         }
     }
 
-    console.log("First check Result:", JSON.stringify(result));
+   // console.log("First check Result:", JSON.stringify(result));
 
 
     // Second pass: check for partial matches (orange)
@@ -463,7 +498,7 @@ function checkGuess(guess) {
             targetLetters[targetIndex] = null;
         }
     }
-    console.log("Second check Result:", JSON.stringify(result));
+    // console.log("Second check Result:", JSON.stringify(result));
 
     return result;
 }
@@ -506,11 +541,11 @@ async function saveGameResults(isSuccessful) {
         turns: isSuccessful ? attempts : "failed",
         guesses: guesses,
     };
-    console.log(gameResult);
+    // console.log(gameResult);
 
     try {
         const docRef = await db.collection('games').add(gameResult);
-        console.log("Game results saved with ID:", docRef.id);
+    //    console.log("Game results saved with ID:", docRef.id);
     } catch (error) {
         console.error("Error saving game results:", error);
     }
@@ -582,207 +617,272 @@ async function displayScores() {
 }
 
 // --- getWordOfTheDay ---
-    async function getWordOfTheDay() {
-        if (wordList.length === 0) {
-            console.warn("Word list is empty. Returning 'cluck'.");
+async function getWordOfTheDay() {
+    if (wordList.length === 0) {
+        console.warn("Word list is empty. Returning 'cluck'.");
+        return "cluck";
+    }
+
+    const now = new Date();
+    const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Convert to GMT
+    const seed = gmtDate.getFullYear() * 10000 + (gmtDate.getMonth() + 1) * 100 + gmtDate.getDate();
+    const rng = mulberry32(seed);
+
+    const randomIndex = Math.floor(rng() * wordList.length);
+    const potentialWord = wordList[randomIndex];
+
+    // Use isValidWord to check against the dictionary API
+    try {
+        if (await isValidWord(potentialWord)) {
+            // console.log("Word of the day:", potentialWord);
+            return potentialWord;
+        } else {
+            console.warn("Selected word was invalid (API check). Returning 'cluck'.");
             return "cluck";
         }
-
-        const now = new Date();
-        const gmtDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60000)); // Convert to GMT
-        const seed = gmtDate.getFullYear() * 10000 + (gmtDate.getMonth() + 1) * 100 + gmtDate.getDate();
-        const rng = mulberry32(seed);
-
-        const randomIndex = Math.floor(rng() * wordList.length);
-        const potentialWord = wordList[randomIndex];
-
-        // Use isValidWord to check against the dictionary API
-        try {
-            if (await isValidWord(potentialWord)) {
-                console.log("Word of the day:", potentialWord);
-                return potentialWord;
-            } else {
-                console.warn("Selected word was invalid (API check). Returning 'cluck'.");
-                return "cluck";
-            }
-        } catch (error) {
-            console.error("Error checking word validity:", error);
-            return "cluck"; // Return "cluck" on any error
-        }
+    } catch (error) {
+        console.error("Error checking word validity:", error);
+        return "cluck"; // Return "cluck" on any error
     }
+}
 
-    function mulberry32(a) {
-        return function() {
-          let t = a += 0x6D2B79F5;
-          t = Math.imul(t ^ t >>> 15, t | 1);
-          t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-          return ((t ^ t >>> 14) >>> 0) / 4294967296;
-        }
+function mulberry32(a) {
+    return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
     }
+}
+// Function to display team scores for each team the user is part of
 
-
-    //---------- NEW FUNCTION -------------//
 async function displayTeamScores() {
-    teamHistogramContainer.innerHTML = ''; // Clear previous histogram
+    teamHistogramContainer.innerHTML = ''; // Clear previous histograms
+    console.log('displayTeamScores function called');
 
     try {
-        const querySnapshot = await db.collection('games').get(); // Get ALL games
+        // 1. Get the list of groups the current user is a member of
+        if (!auth.currentUser) {
+            teamHistogramContainer.innerHTML = '<p>Please sign in to see team scores.</p>';
+            console.log('User not signed in.');
+            return;
+        }
+        console.log('Current user UID:', auth.currentUser.uid);
 
-        if (querySnapshot.empty) {
-            teamHistogramContainer.innerHTML = '<p>No team scores found.</p>';
+        const groupsSnapshot = await db.collection('groups')
+            .where('members', 'array-contains', auth.currentUser.uid)
+            .get();
+
+        if (groupsSnapshot.empty) {
+            teamHistogramContainer.innerHTML = '<p>You are not a member of any teams.</p>';
+            console.log('User is not a member of any groups.');
             return;
         }
 
-        const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
-        querySnapshot.forEach(doc => { // Loop through ALL games
-            const turns = doc.data().turns;
-            if (turnCounts.hasOwnProperty(turns)) {
-                turnCounts[turns]++;
+        console.log('Groups where user is a member:', groupsSnapshot.docs.map(doc => doc.id));
+
+        // 2. Iterate through each group
+        for (const groupDoc of groupsSnapshot.docs) {
+            const groupId = groupDoc.id;
+            const groupName = groupDoc.data().groupName || 'Unnamed Group';
+            const groupMembers = groupDoc.data().members ||; // Get members of the current group
+            const groupCreatedAt = groupDoc.data().createdAt; // Get group creation timestamp
+
+            console.log('Processing group:', groupId, 'Name:', groupName, 'Members:', groupMembers, 'Created At:', groupCreatedAt);
+
+            if (!groupCreatedAt) {
+                console.log(`Group ${groupId} missing creation timestamp.`);
+                continue; // Skip if no creation date
             }
-        });
+            if (groupMembers.length === 0) {
+                const groupSection = document.createElement('div');
+                groupSection.innerHTML = `<h3>${groupName}</h3><p>No members in this group.</p>`;
+                teamHistogramContainer.appendChild(groupSection);
+                continue;
+            }
 
-        let maxCount = Math.max(...Object.values(turnCounts));
-        if (maxCount === 0) {
-            teamHistogramContainer.innerHTML = '<p>No games played yet.</p>';
-            return;
+            // 3. Fetch games for all members of the current group since the group was created
+            const querySnapshot = await db.collection('games')
+                .where('userId', 'in', groupMembers) // Get games played by any member of the group
+                .where('timestamp', '>=', groupCreatedAt) // Only games since group creation
+                .get();
+
+            console.log(`Games found for members of group ${groupId} since creation:`, querySnapshot.size);
+
+            if (querySnapshot.empty) {
+                const groupSection = document.createElement('div');
+                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
+                teamHistogramContainer.appendChild(groupSection);
+                continue; // Move to the next group
+            }
+
+            const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+            querySnapshot.forEach(doc => {
+                const turns = doc.data().turns;
+                if (turnCounts.hasOwnProperty(turns)) {
+                    turnCounts[turns]++;
+                }
+            });
+            console.log(`Turn counts for group ${groupId} (since creation):`, turnCounts);
+
+            let maxCount = Math.max(...Object.values(turnCounts));
+            if (maxCount === 0) {
+                const groupSection = document.createElement('div');
+                groupSection.innerHTML = `<h3>${groupName}</h3><p>No games played by members of this group since it was created.</p>`;
+                teamHistogramContainer.appendChild(groupSection);
+                continue; // Move to the next group
+            }
+
+            // Create a container for the group's histogram
+            const groupHistogramContainer = document.createElement('div');
+            groupHistogramContainer.classList.add('team-histogram');
+            groupHistogramContainer.innerHTML = `<h3>${groupName}</h3>`;
+            const barsContainer = document.createElement('div');
+            barsContainer.classList.add('bars-container'); // For styling if needed
+
+            // --- Draw histogram bars for this group ---
+            for (let i = 1; i <= 6; i++) {
+                const barHeight = (turnCounts[i] / maxCount) * 100;
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${barHeight}%`;
+                bar.setAttribute('data-turns', i);
+                const barLabel = document.createElement('span');
+                barLabel.classList.add("bar-label");
+                barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
+                bar.appendChild(barLabel);
+                barsContainer.appendChild(bar);
+            }
+
+            // Add "failed" bar
+            const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
+            const failBar = document.createElement('div');
+            failBar.classList.add('bar');
+            failBar.style.height = `${failBarHeight}%`;
+            failBar.setAttribute('data-turns', 'failed');
+            const failBarLabel = document.createElement('span');
+            failBarLabel.classList.add("bar-label");
+            failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
+            failBar.appendChild(failBarLabel);
+            barsContainer.appendChild(failBar);
+            // --- End of drawing histogram bars ---
+
+            groupHistogramContainer.appendChild(barsContainer);
+            teamHistogramContainer.appendChild(groupHistogramContainer);
         }
-
-        for (let i = 1; i <= 6; i++) {
-            const barHeight = (turnCounts[i] / maxCount) * 100;
-            const bar = document.createElement('div');
-            bar.classList.add('bar');
-            bar.style.height = `${barHeight}%`;
-            bar.setAttribute('data-turns', i);
-             const barLabel = document.createElement('span');
-            barLabel.classList.add("bar-label");
-            barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : ""; // Only if > 0
-            bar.appendChild(barLabel);
-            teamHistogramContainer.appendChild(bar);
-        }
-
-        // Add "failed" bar
-        const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
-        const failBar = document.createElement('div');
-        failBar.classList.add('bar');
-        failBar.style.height = `${failBarHeight}%`;
-        failBar.setAttribute('data-turns', 'failed');
-        const failBarLabel = document.createElement('span');
-        failBarLabel.classList.add("bar-label");
-        failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
-        failBar.appendChild(failBarLabel);
-        teamHistogramContainer.appendChild(failBar);
 
     } catch (error) {
         console.error("Error fetching team scores:", error);
         teamHistogramContainer.innerHTML = '<p>Error loading team scores.</p>';
     }
 }
-      // --- Create Group Button Listener (CORRECTED) ---
-      createGroupButton.addEventListener('click', async () => {
-        const groupName = groupNameInput.value.trim();
-        if (!groupName) {
-            alert("Please enter a group name.");
-            return;
-        }
-        if (!auth.currentUser) {
-            alert("You must be signed in to create a group.");
-            return;
-        }
-    
-        try {
-            const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup'; // Get from Firebase console
-            const idToken = await auth.currentUser.getIdToken();
-    
-            const response = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: { groupName: groupName } }),
-            });
-    
-            if (!response.ok) {
-                console.error("Error creating group Status:", response.status);
-                const errorText = await response.text();
-                console.error("Error creating group Body:", errorText);
-                alert("Failed to create group: " + response.status + " " + errorText);
-                return;
-            }
-    
-            const result = await response.json();
-            const groupId = result.data.groupId;
-            const inviteLink = `${window.location.origin}/?groupId=${groupId}`;
-            inviteLinkInput.value = inviteLink;
-            inviteLinkContainer.style.display = 'block';
-            addGroupMembersDiv.style.display = "block";
-            currentGroupId = groupId;
-            copyLinkButton.addEventListener('click', () => {
-                inviteLinkInput.select();
-                document.execCommand('copy');
-                alert("Invite link copied to clipboard!");
-            });
-    
-        } catch (error) {
-            console.error("Error creating group:", error);
-            alert("Failed to create group: " + error.message);
-        }
+
+// --- Create Group Button Listener 
+createGroupButton.addEventListener('click', async () => {
+const groupName = groupNameInput.value.trim();
+if (!groupName) {
+    alert("Please enter a group name.");
+    return;
+}
+if (!auth.currentUser) {
+    alert("You must be signed in to create a group.");
+    return;
+}
+
+try {
+    const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup'; // Get from Firebase console
+    const idToken = await auth.currentUser.getIdToken();
+
+    const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + idToken,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: { groupName: groupName } }),
     });
-   
-    // --- Copy Link ----
+
+    if (!response.ok) {
+        console.error("Error creating group Status:", response.status);
+        const errorText = await response.text();
+        console.error("Error creating group Body:", errorText);
+        alert("Failed to create group: " + response.status + " " + errorText);
+        return;
+    }
+
+    const result = await response.json();
+    const groupId = result.data.groupId;
+    const inviteLink = `${window.location.origin}/?groupId=${groupId}`;
+    inviteLinkInput.value = inviteLink;
+    inviteLinkContainer.style.display = 'block';
+    addGroupMembersDiv.style.display = "block";
+    currentGroupId = groupId;
     copyLinkButton.addEventListener('click', () => {
         inviteLinkInput.select();
         document.execCommand('copy');
-        alert("Copied Link")
+        alert("Invite link copied to clipboard!");
     });
 
-    // --- Add Member to Group ---
-    addMemberButton.addEventListener('click', async () => {
-        const invitedEmail = invitedMemberEmailInput.value.trim();
-        if (!invitedEmail) {
-            alert("Please enter an email to invite.");
+} catch (error) {
+    console.error("Error creating group:", error);
+    alert("Failed to create group: " + error.message);
+}
+});
+   
+// --- Copy Link ----
+copyLinkButton.addEventListener('click', () => {
+    inviteLinkInput.select();
+    document.execCommand('copy');
+    alert("Copied Link")
+});
+
+// --- Add Member to Group ---
+addMemberButton.addEventListener('click', async () => {
+    const invitedEmail = invitedMemberEmailInput.value.trim();
+    if (!invitedEmail) {
+        alert("Please enter an email to invite.");
+        return;
+    }
+    if (!auth.currentUser) {
+        alert("You must be signed in to add members.");
+        return;
+    }
+    if (!currentGroupId) {
+        alert("No group selected.");
+        return;
+    }
+
+    try {
+        const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/addUserToGroup'; // Get from Firebase console
+        const idToken = await auth.currentUser.getIdToken();
+
+        const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + idToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: { groupId: currentGroupId, invitedEmail: invitedEmail } }),
+        });
+
+        if (!response.ok) {
+            console.error("Error adding member Status:", response.status);
+            const errorText = await response.text();
+            console.error("Error adding member Body:", errorText);
+            alert("Failed to add member: " + response.status + " " + errorText);
             return;
         }
-        if (!auth.currentUser) {
-            alert("You must be signed in to add members.");
-            return;
-        }
-        if (!currentGroupId) {
-            alert("No group selected.");
-            return;
-        }
-    
-        try {
-            const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/addUserToGroup'; // Get from Firebase console
-            const idToken = await auth.currentUser.getIdToken();
-    
-            const response = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: { groupId: currentGroupId, invitedEmail: invitedEmail } }),
-            });
-    
-            if (!response.ok) {
-                console.error("Error adding member Status:", response.status);
-                const errorText = await response.text();
-                console.error("Error adding member Body:", errorText);
-                alert("Failed to add member: " + response.status + " " + errorText);
-                return;
-            }
-    
-            const result = await response.json();
-            console.log("Add member result:", result);
-            alert(`User ${invitedEmail} has been invited.`);
-            invitedMemberEmailInput.value = ""; // Clear the input
-    
-        } catch (error) {
-            console.error("Error adding member:", error);
-            alert("Failed to add member: " + error.message);
-        }
-    });
+
+        const result = await response.json();
+        console.log("Add member result:", result);
+        alert(`User ${invitedEmail} has been invited.`);
+        invitedMemberEmailInput.value = ""; // Clear the input
+
+    } catch (error) {
+        console.error("Error adding member:", error);
+        alert("Failed to add member: " + error.message);
+    }
+});
 
 
 

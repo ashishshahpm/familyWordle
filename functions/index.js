@@ -80,35 +80,6 @@ function generateGroupId() {
          Math.random().toString(36).substring(2, 15);
 }
 
-exports.testAuthDirect = functions
-.runWith({
-  region: "us-central1",
-  memory: "256MB", // Optional: Specify memory for 1st gen
-  gen: 1, // Explicitly specify 1st generation
-})
-.https.onRequest(async (req, res) => {
-  cors(req, res, async () => { // Use the cors middleware
-    console.log("testAuthDirect headers:", req.headers);
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.error("testAuthDirect: No Bearer token");
-      res.status(401).send("Unauthorized: No Bearer token");
-      return;
-    }
-    const idToken = authHeader.split("Bearer ")[1];
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const uid = decodedToken.uid;
-      console.log("testAuthDirect Decoded UID:", uid);
-      res.status(200).send({message: "Direct Auth Success: Hello, " + uid});
-    } catch (error) {
-      console.error("testAuthDirect Token Verification Error:", error);
-      res.status(401).send("Unauthorized: Invalid token");
-    }
-  });
-});
-
 /**
  * Adds a user to the invited emails list of a group.
  *
@@ -230,6 +201,54 @@ exports.joinGroup = functions
   });
 
   return {success: true};
+});
+
+exports.joinGroupByLink = functions.https.onRequest(async (req, res) => {
+  cors(req, res, async () => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).send("Unauthorized: No Bearer token");
+      }
+      const idToken = authHeader.split("Bearer ")[1];
+
+      try {
+          const decodedToken = await admin.auth().verifyIdToken(idToken);
+          const uid = decodedToken.uid;
+          const email = decodedToken.email; // Get the user's email
+          const groupId = req.body.groupId;
+
+          if (!groupId) {
+              return res.status(400).send("Bad Request: Missing groupId");
+          }
+
+          const groupRef = admin.firestore().collection("groups").doc(groupId);
+          const groupDoc = await groupRef.get();
+
+          if (!groupDoc.exists) {
+              return res.status(404).send("Not Found: Group does not exist");
+          }
+
+          const groupData = groupDoc.data();
+
+          // Check if the user's email is in the invited emails list
+          if (!groupData.invitedEmails || !groupData.invitedEmails.includes(email)) {
+              return res.status(403).send("Forbidden: User is not invited to this group");
+          }
+
+          // Add the user's UID to the members array using arrayUnion
+          await groupRef.update({
+              members: admin.firestore.FieldValue.arrayUnion(uid),
+              invitedEmails: admin.firestore.FieldValue.arrayRemove(email), // Remove from invited list
+          });
+          return res.status(200).send({message: `User ${uid} added to group ${groupId}`});
+      } catch (error) {
+          console.error("Error joining group by link:", error);
+          if (error.code === "auth/id-token-expired" || error.code === "auth/argument-error") {
+              return res.status(401).send("Unauthorized: Invalid token");
+          }
+          return res.status(500).send("Internal Server Error");
+      }
+  });
 });
 /**
      * Validates an email address. A simple regex check.
