@@ -282,9 +282,9 @@ h1 {
     font-size: 0.8em; /* Slightly larger label */
     color: black;
     position: absolute;
-    bottom: -22px; /* Further down */
+    top: -20px; /* Position above the bar */
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%); /* Center horizontally */
     white-space: nowrap;
 }
 
@@ -300,6 +300,8 @@ h1 {
 #x-axis-labels span {
     width: calc(100% / 9); /* Match bar width */
     text-align: center;
+    font-weight: bold; /* Make the text bold */
+    font-size: 1.1em; /* Make the text bigger. Adjust as desired */
 }
 
 /* Close button for team scores */
@@ -314,4 +316,12 @@ h1 {
     cursor: pointer;
     border-radius: 4px;
     width: 50%; /* Example width, adjust as needed */
+}
+
+.user-bar {
+    background-color: steelblue; /* Or your preferred color */
+}
+
+.other-bar {
+    background-color: lightgray; /* Or your preferred color */
 }

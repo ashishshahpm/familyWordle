@@ -851,6 +851,8 @@ function displaySingleTeamScores(groupId, groupName) {
         return;
     }
 
+    const currentUserId = auth.currentUser.uid;
+
     db.collection('groups').doc(groupId).get()
         .then(groupDoc => {
             if (!groupDoc.exists) {
@@ -870,17 +872,32 @@ function displaySingleTeamScores(groupId, groupName) {
                 .where('userId', 'in', groupMembers)
                 .get()
                 .then(querySnapshot => {
-                    const turnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+                    const userTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+                    const otherTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
                     let gamesSinceCreation = 0;
+                    let userGames = 0;
+                    let otherGames = 0;
+
                     querySnapshot.forEach(doc => {
-                        const gameDateString = doc.data().date;
+                        const gameData = doc.data();
+                        const gameDateString = gameData.date;
                         if (gameDateString) {
                             const gameDate = new Date(gameDateString);
                             if (gameDate >= groupCreatedAtDate) {
                                 gamesSinceCreation++;
-                                const turns = doc.data().turns;
-                                if (turnCounts.hasOwnProperty(turns)) {
-                                    turnCounts[turns]++;
+                                const turns = gameData.turns;
+                                const userId = gameData.userId;
+
+                                if (userId === currentUserId) {
+                                    if (userTurnCounts.hasOwnProperty(turns)) {
+                                        userTurnCounts[turns]++;
+                                        userGames++;
+                                    }
+                                } else {
+                                    if (otherTurnCounts.hasOwnProperty(turns)) {
+                                        otherTurnCounts[turns]++;
+                                        otherGames++;
+                                    }
                                 }
                             }
                         }
@@ -891,7 +908,13 @@ function displaySingleTeamScores(groupId, groupName) {
                         return;
                     }
 
-                    let maxCount = Math.max(...Object.values(turnCounts));
+                    const allTurnCounts = {};
+                    for (let i = 1; i <= 6; i++) {
+                        allTurnCounts[i] = userTurnCounts[i] + otherTurnCounts[i];
+                    }
+                    allTurnCounts['failed'] = userTurnCounts['failed'] + otherTurnCounts['failed'];
+
+                    let maxCount = Math.max(...Object.values(allTurnCounts));
                     if (maxCount === 0) maxCount = 1; // Avoid division by zero
 
                     const barsContainer = document.createElement('div');
@@ -903,37 +926,77 @@ function displaySingleTeamScores(groupId, groupName) {
                     barsContainer.style.padding = '0 10px';
                     barsContainer.style.borderBottom = '2px solid black';
 
+                    const barWidth = `calc(100% / 18)`; // Roughly half the space for 7 categories
+
                     for (let i = 1; i <= 6; i++) {
-                        const barHeight = (turnCounts[i] / maxCount) * 100;
-                        const bar = document.createElement('div');
-                        bar.classList.add('bar');
-                        bar.style.height = `${barHeight}%`;
-                        bar.style.width = `calc(100% / 9)`;
-                        bar.style.margin = '0 2px';
-                        bar.setAttribute('data-turns', i);
-                        const barLabel = document.createElement('span');
-                        barLabel.classList.add("bar-label");
-                        barLabel.style.fontSize = '0.8em';
-                        barLabel.textContent = turnCounts[i] > 0 ? turnCounts[i] : "";
-                        bar.appendChild(barLabel);
-                        barsContainer.appendChild(bar);
+                        const userBarHeight = (userTurnCounts[i] / maxCount) * 100;
+                        const userBar = document.createElement('div');
+                        userBar.classList.add('bar', 'user-bar');
+                        userBar.style.height = `${userBarHeight}%`;
+                        userBar.style.width = barWidth;
+                        userBar.style.marginRight = '1px'; // Space between user and other bar
+                        userBar.setAttribute('data-turns', i);
+                        const userBarLabel = document.createElement('span');
+                        userBarLabel.classList.add("bar-label");
+                        userBarLabel.style.top = '-20px'; // Ensure it's on top
+                        userBarLabel.textContent = userTurnCounts[i] > 0 ? userTurnCounts[i] : "";
+                        userBar.appendChild(userBarLabel);
+                        barsContainer.appendChild(userBar);
+
+                        const otherBarHeight = (otherTurnCounts[i] / maxCount) * 100;
+                        const otherBar = document.createElement('div');
+                        otherBar.classList.add('bar', 'other-bar');
+                        otherBar.style.height = `${otherBarHeight}%`;
+                        otherBar.style.width = barWidth;
+                        otherBar.style.marginRight = '3px'; // Space before next set
+                        otherBar.setAttribute('data-turns', i);
+                        const otherBarLabel = document.createElement('span');
+                        otherBarLabel.classList.add("bar-label");
+                        otherBarLabel.style.top = '-20px'; // Ensure it's on top
+                        otherBarLabel.textContent = otherTurnCounts[i] > 0 ? otherTurnCounts[i] : "";
+                        otherBar.appendChild(otherBarLabel);
+                        barsContainer.appendChild(otherBar);
                     }
 
-                    const failBarHeight = (turnCounts['failed'] / maxCount) * 100;
-                    const failBar = document.createElement('div');
-                    failBar.classList.add('bar');
-                    failBar.style.height = `${failBarHeight}%`;
-                    failBar.style.width = `calc(100% / 9)`;
-                    failBar.style.margin = '0 2px';
-                    failBar.setAttribute('data-turns', 'failed');
-                    const failBarLabel = document.createElement('span');
-                    failBarLabel.classList.add("bar-label");
-                    failBarLabel.style.fontSize = '0.8em';
-                    failBarLabel.textContent = turnCounts['failed'] > 0 ? turnCounts['failed'] : "";
-                    failBar.appendChild(failBarLabel);
-                    barsContainer.appendChild(failBar);
+                    // For 'failed'
+                    const userFailBarHeight = (userTurnCounts['failed'] / maxCount) * 100;
+                    const userFailBar = document.createElement('div');
+                    userFailBar.classList.add('bar', 'user-bar');
+                    userFailBar.style.height = `${userFailBarHeight}%`;
+                    userFailBar.style.width = barWidth;
+                    userFailBar.style.marginRight = '1px';
+                    userFailBar.setAttribute('data-turns', 'failed');
+                    const userFailBarLabel = document.createElement('span');
+                    userFailBarLabel.classList.add("bar-label");
+                    userFailBarLabel.style.top = '-20px';
+                    userFailBarLabel.textContent = userTurnCounts['failed'] > 0 ? userTurnCounts['failed'] : "";
+                    userFailBar.appendChild(userFailBarLabel);
+                    barsContainer.appendChild(userFailBar);
+
+                    const otherFailBarHeight = (otherTurnCounts['failed'] / maxCount) * 100;
+                    const otherFailBar = document.createElement('div');
+                    otherFailBar.classList.add('bar', 'other-bar');
+                    otherFailBar.style.height = `${otherFailBarHeight}%`;
+                    otherFailBar.style.width = barWidth;
+                    otherFailBar.style.marginRight = '3px';
+                    otherFailBar.setAttribute('data-turns', 'failed');
+                    const otherFailBarLabel = document.createElement('span');
+                    otherFailBarLabel.classList.add("bar-label");
+                    otherFailBarLabel.style.top = '-20px';
+                    otherFailBarLabel.textContent = otherTurnCounts['failed'] > 0 ? otherTurnCounts['failed'] : "";
+                    otherFailBar.appendChild(otherFailBarLabel);
+                    barsContainer.appendChild(otherFailBar);
 
                     teamHistogramDiv.appendChild(barsContainer);
+
+                    // Add a legend
+                    const legend = document.createElement('div');
+                    legend.style.marginTop = '10px';
+                    legend.innerHTML = `
+                        <span style="display: inline-block; width: 10px; height: 10px; background-color: blue; margin-right: 5px;"></span>Your Scores
+                        <span style="display: inline-block; width: 10px; height: 10px; background-color: gray; margin-left: 10px; margin-right: 5px;"></span>Team Scores
+                    `;
+                    teamHistogramDiv.appendChild(legend);
                 });
         })
         .catch(error => {
