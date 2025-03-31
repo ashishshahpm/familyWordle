@@ -47,10 +47,8 @@ const guessesContainer = document.getElementById("guesses-container");
 const gameContainer = document.getElementById("game-container");
 const restartButton = document.getElementById("restart-button");
 const sidebar = document.getElementById('sidebar');
-const scoresButton = document.getElementById('scores-button');
-const scoresContainer = document.getElementById('scores-container');
-const histogramContainer = document.getElementById('histogram');
-const closeScoresButton = document.getElementById('close-scores-button');
+
+
 
 //Add Group elements
 const groupNameInput = document.getElementById('group-name'); // NEW
@@ -62,19 +60,26 @@ const invitedMemberEmailInput = document.getElementById('invited-member-email');
 const addMemberButton = document.getElementById('add-member');
 const copyLinkButton = document.getElementById('copy-link');
 let currentGroupId = null; //NEW
+const createGroupButton = document.getElementById('create-group-button'); // NEW
+
+
+//Add scores elements
+const scoresContainer = document.getElementById('scores-container');
+const scoresButton = document.getElementById('scores-button');
+const closeScoresButton = document.getElementById('close-scores-button');
+const histogramContainer = document.getElementById('histogram');
 
 //Add team elements
 const teamScoresContainer = document.getElementById('team-scores-container');
-const teamHistogramContainer = document.getElementById('team-histogram');
-const closeTeamScoresButton = document.getElementById('close-team-scores-button');
-const createGroupButton = document.getElementById('create-group-button'); // NEW
 const teamScoresButton = document.getElementById('team-scores-button');
+console.log("Initial check - teamScoresButton element:", teamScoresButton); // <-- ADD THIS
+const closeTeamScoresButton = document.getElementById('close-team-scores-button');
 const teamListContainer = document.getElementById('team-list-container');
 const teamList = document.getElementById('team-list');
 const closeTeamListButton = document.getElementById('close-team-list-button');
 const teamNameTitle = document.getElementById('team-name-title');
 const backToTeamListButton = document.getElementById('back-to-team-list-button');
-const teamHistogramDiv = document.getElementById('team-histogram');
+const teamHistogramContainer = document.getElementById('team-histogram');
 
 let currentDisplayMode = 'list'; // 'list' or 'scores'
 
@@ -286,6 +291,7 @@ closeScoresButton.addEventListener('click', () => {
     gameContainer.style.display = "block";
 })
 
+/*
  // --- Show Team Scores Function --- (NEW)
 teamScoresButton.addEventListener('click', () => {
     displayTeamScores();
@@ -297,8 +303,9 @@ closeTeamScoresButton.addEventListener('click', () => {
     teamScoresContainer.style.display = 'none';
     gameContainer.style.display = "block";
 })
+*/
 
-  function hideGameAndScores() {
+function hideGameAndScores() {
     gameContainer.style.display = 'none';
     scoresContainer.style.display = 'none';
 }
@@ -630,6 +637,7 @@ async function displayScores() {
     }
 }
 
+
 // --- getWordOfTheDay ---
 async function getWordOfTheDay() {
     if (wordList.length === 0) {
@@ -838,6 +846,7 @@ function showTeamList() {
         });
 }
 
+/*
 // Function to display the scores for a single team
 function displaySingleTeamScores(groupId, groupName) {
     currentDisplayMode = 'scores';
@@ -1003,6 +1012,166 @@ function displaySingleTeamScores(groupId, groupName) {
             console.error("Error fetching team scores:", error);
             teamHistogramDiv.innerHTML = '<p>Error loading team scores.</p>';
         });
+}
+*/
+
+async function displaySingleTeamScores(groupId, groupName) {
+    currentDisplayMode = 'scores'; // Set display mode
+    teamListContainer.style.display = 'none';
+    teamScoresContainer.style.display = 'block';
+    teamNameTitle.textContent = groupName + " Scores"; // Set the title
+    teamHistogramContainer.innerHTML = ''; // Clear previous histogram
+
+    if (!auth.currentUser) {
+        teamHistogramContainer.innerHTML = '<p>Please sign in to see team scores.</p>';
+        return;
+    }
+
+    const currentUserId = auth.currentUser.uid;
+    console.log(`Displaying single team score for Group: ${groupName} (${groupId}) | Current User: ${currentUserId}`);
+
+
+    try { // Use try...catch for robustness
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+
+        if (!groupDoc.exists) {
+            teamHistogramContainer.innerHTML = '<p>Team not found.</p>';
+            return;
+        }
+        const groupMembers = groupDoc.data().members || [];
+        const groupCreatedAtTimestamp = groupDoc.data().createdAt;
+        const groupCreatedAtDate = groupCreatedAtTimestamp ? groupCreatedAtTimestamp.toDate() : null;
+
+        if (!groupCreatedAtDate || groupMembers.length === 0) {
+            teamHistogramContainer.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
+            return;
+        }
+
+        console.log("Group Members:", groupMembers);
+        console.log("Group Created At:", groupCreatedAtDate);
+
+        const querySnapshot = await db.collection('games')
+            .where('userId', 'in', groupMembers)
+            .get();
+
+        console.log(`Total games found for members: ${querySnapshot.size}`);
+
+        const userTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+        const otherTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
+        let gamesSinceCreationCount = 0;
+
+        querySnapshot.forEach(doc => {
+            const gameData = doc.data();
+            const gameDateString = gameData.date;
+            const gameUserId = gameData.userId;
+            const gameTurns = gameData.turns; // Use gameTurns here
+
+            if (gameDateString) {
+                const gameDate = new Date(gameDateString);
+                if (gameDate >= groupCreatedAtDate) {
+                    gamesSinceCreationCount++;
+
+                    // Check if gameTurns is a valid key (1-6 or 'failed')
+                    if (userTurnCounts.hasOwnProperty(gameTurns)) {
+                        if (gameUserId === currentUserId) {
+                           // console.log("   -> Belongs to current user.");
+                            userTurnCounts[gameTurns]++;
+                        } else {
+                           // console.log("   -> Belongs to other user.");
+                            otherTurnCounts[gameTurns]++;
+                        }
+                    } else {
+                         console.warn("Invalid 'turns' value in game doc:", gameTurns);
+                    }
+                }
+            } else {
+                 console.warn("Game doc missing 'date' field:", doc.id);
+            }
+        });
+
+        console.log("Games processed since creation:", gamesSinceCreationCount);
+        console.log("User Turn Counts:", JSON.stringify(userTurnCounts));
+        console.log("Other Turn Counts:", JSON.stringify(otherTurnCounts));
+
+
+        if (gamesSinceCreationCount === 0) {
+            teamHistogramContainer.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
+            return;
+        }
+
+        const allTurnCounts = {};
+        for (let i = 1; i <= 6; i++) { allTurnCounts[i] = userTurnCounts[i] + otherTurnCounts[i]; }
+        allTurnCounts['failed'] = userTurnCounts['failed'] + otherTurnCounts['failed'];
+        let maxCount = Math.max(...Object.values(allTurnCounts));
+        if (maxCount === 0) maxCount = 1; // Avoid division by zero
+         console.log("Max Count for scaling:", maxCount);
+
+        // --- Draw histogram bars directly into teamHistogramContainer ---
+        for (let i = 1; i <= 6; i++) {
+            const userBarHeight = (userTurnCounts[i] / maxCount) * 100;
+            const userBar = document.createElement('div');
+            userBar.classList.add('bar', 'user-bar');
+            userBar.style.height = `${userBarHeight}%`;
+            userBar.setAttribute('data-turns', i);
+             userBar.setAttribute('data-user', 'current');
+            const userBarLabel = document.createElement('span');
+            userBarLabel.classList.add("bar-label");
+            userBarLabel.textContent = userTurnCounts[i] > 0 ? userTurnCounts[i] : "";
+            userBar.appendChild(userBarLabel);
+            teamHistogramContainer.appendChild(userBar); // Append user bar
+
+            const otherBarHeight = (otherTurnCounts[i] / maxCount) * 100;
+            const otherBar = document.createElement('div');
+            otherBar.classList.add('bar', 'other-bar');
+            otherBar.style.height = `${otherBarHeight}%`;
+             otherBar.setAttribute('data-turns', i);
+             otherBar.setAttribute('data-user', 'other');
+            const otherBarLabel = document.createElement('span');
+            otherBarLabel.classList.add("bar-label");
+            otherBarLabel.textContent = otherTurnCounts[i] > 0 ? otherTurnCounts[i] : "";
+            otherBar.appendChild(otherBarLabel);
+            teamHistogramContainer.appendChild(otherBar); // Append other bar
+        }
+
+        // For 'failed'
+        const userFailBarHeight = (userTurnCounts['failed'] / maxCount) * 100;
+        const userFailBar = document.createElement('div');
+        userFailBar.classList.add('bar', 'user-bar');
+        userFailBar.style.height = `${userFailBarHeight}%`;
+        userFailBar.setAttribute('data-turns', 'failed');
+         userFailBar.setAttribute('data-user', 'current');
+        const userFailBarLabel = document.createElement('span');
+        userFailBarLabel.classList.add("bar-label");
+        userFailBarLabel.textContent = userTurnCounts['failed'] > 0 ? userTurnCounts['failed'] : "";
+        userFailBar.appendChild(userFailBarLabel);
+        teamHistogramContainer.appendChild(userFailBar);
+
+        const otherFailBarHeight = (otherTurnCounts['failed'] / maxCount) * 100;
+        const otherFailBar = document.createElement('div');
+        otherFailBar.classList.add('bar', 'other-bar');
+        otherFailBar.style.height = `${otherFailBarHeight}%`;
+        otherFailBar.setAttribute('data-turns', 'failed');
+        otherFailBar.setAttribute('data-user', 'other');
+        const otherFailBarLabel = document.createElement('span');
+        otherFailBarLabel.classList.add("bar-label");
+        otherFailBarLabel.textContent = otherTurnCounts['failed'] > 0 ? otherTurnCounts['failed'] : "";
+        otherFailBar.appendChild(otherFailBarLabel);
+        teamHistogramContainer.appendChild(otherFailBar);
+        // --- End of drawing histogram bars ---
+
+        // Add a legend
+        const legend = document.createElement('div');
+        legend.id = 'team-scores-legend'
+        legend.innerHTML = `
+            <span title="Your Scores"><span class="legend-swatch user-bar-legend"></span> Your Scores</span>
+            <span title="Other Team Members' Scores"><span class="legend-swatch other-bar-legend"></span> Team Scores</span>
+        `;
+        teamHistogramContainer.appendChild(legend);
+
+    } catch (error) {
+        console.error("Error fetching team scores:", error);
+        teamHistogramContainer.innerHTML = '<p>Error loading team scores.</p>';
+    }
 }
 
 // Event listeners

@@ -165,45 +165,6 @@ h1 {
     margin-top: 10px;
     font-style: italic;
 }
-/* Scores Container */
-#scores-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    display: none;
-    width: 80%;
-    max-width: 500px;
-    text-align: center; /* Center text */
-}
-#scores-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-#scores-list li {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-#close-scores-button{
-        display: block;
-     margin: auto;
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #008CBA;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    width: 50%;
-}
 
 /* Team Scores Container */
 #team-scores-container {
@@ -224,84 +185,48 @@ h1 {
     overflow-y: auto;
     text-align: center;
 }
-
-#team-histogram-wrapper {
-    display: flex;
-    flex-direction: column; /* Stack y-axis and histogram vertically */
-    align-items: flex-start; /* Align to the start */
-    width: 100%; /* Let it take the full width of the container */
-    margin-bottom: 20px;
-    position: relative; /* For absolute positioning of y-axis */
-}
-
-.y-axis-label {
-    position: absolute;
-    left: 0;
+/* Scores Container */
+#scores-container {
+    display: none; /* Hidden by default */
+    position: fixed;
     top: 50%;
-    transform: translateY(-50%) rotate(-90deg);
-    white-space: nowrap;
-    transform-origin: center;
-    font-size: 0.8em;
-}
-
-#team-histogram {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    margin-left: 40px; /* Make space for the y-axis label */
-}
-
-.bars-container {
-    display: flex;
-    justify-content: space-around; /* Distribute space around bars */
-    align-items: flex-end;
-    width: 100%; /* Full width of #team-histogram */
-    height: 150px; /* Increased height */
-    padding: 0 10px;
-    border-bottom: 2px solid black; /* X-axis line */
-}
-
-.bar {
-    background-color: steelblue;
-    width: calc(100% / 9); /* Wider bars */
-    display: flex;
-    flex-direction: column-reverse; /* Put label at the bottom */
-    align-items: center;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    position: relative;
-    margin: 0 2px; /* Add some horizontal margin between bars */
-}
-
-.bar[data-turns="failed"] {
-    background-color: firebrick;
-}
-
-.bar-label {
-    font-size: 0.8em; /* Slightly larger label */
-    color: black;
-    position: absolute;
-    top: -20px; /* Position above the bar */
     left: 50%;
-    transform: translateX(-50%); /* Center horizontally */
-    white-space: nowrap;
-}
-
-#x-axis-labels {
-    display: flex;
-    justify-content: space-around;
-    width: 100%; /* Full width of #team-histogram */
-    margin-left: 40px; /* Align with bars */
-    margin-top: 5px; /* Space below histogram */
-    font-size: 0.9em;
-}
-
-#x-axis-labels span {
-    width: calc(100% / 9); /* Match bar width */
+    transform: translate(-50%, -50%);
+    background-color: #f8f8f8;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 80%;
+    max-width: 95%; /* Still keep a reasonable max-width */
+    max-height: 90%;
+    overflow-y: auto;
     text-align: center;
-    font-weight: bold; /* Make the text bold */
-    font-size: 1.1em; /* Make the text bigger. Adjust as desired */
+}
+
+#scores-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#scores-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+#close-scores-button{
+    display: block;
+    margin: auto;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 50%;
 }
 
 /* Close button for team scores */
@@ -318,10 +243,201 @@ h1 {
     width: 50%; /* Example width, adjust as needed */
 }
 
-.user-bar {
-    background-color: steelblue; /* Or your preferred color */
+/* ============================
+   Histogram Styles (Common)
+   ============================ */
+
+/* Wrapper for histogram + labels */
+#histogram-wrapper,
+#team-histogram-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 30px;
+    padding-left: 40px; /* Space for y-axis label */
+    box-sizing: border-box;
 }
 
-.other-bar {
-    background-color: lightgray; /* Or your preferred color */
+/* Y-Axis Label */
+.y-axis-label {
+    position: absolute;
+    left: 0px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: left top;
+    white-space: nowrap;
+    font-size: 0.8em;
+    color: #555;
+}
+
+/* Histogram Grid Area - Individual Scores */
+#histogram {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 columns for individual */
+    gap: 5px;
+    width: 100%;
+    height: 180px;
+    border-bottom: 2px solid black;
+    padding-top: 25px;
+    box-sizing: border-box;
+    align-items: end;
+    position: relative;
+}
+
+
+/* Histogram Grid Area - Team Scores */
+#team-histogram {
+    display: grid; /* Use Grid */
+    grid-template-columns: repeat(14, 1fr); /* 14 columns for team pairs */
+    /* gap: 2px; /* Smaller gap for paired bars */
+    column-gap: 1px;
+    row-gap: 0;
+    width: 100%;
+    height: 180px; /* Fixed height */
+    border-bottom: 2px solid black;
+    padding-top: 25px; /* Space for labels above */
+    box-sizing: border-box;
+    align-items: end; /* Align bars to the bottom */
+    position: relative;
+    margin-bottom: 20px; /* Space before x-axis labels */
+}
+
+/* Container for bars within a *team* group section (if needed) */
+/* We don't need a specific rule for bars-container if bars are direct children of the grid */
+/* #team-histogram .bars-container { ... } */
+
+
+/* Individual Histogram Bars (Common) */
+.bar {
+    background-color: #008CBA; /* Default color */
+    position: relative;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    /* Width comes from grid */
+    /* Height comes from inline JS style */
+    min-height: 1px; /* Ensure visibility */
+    /* margin: 0 30%; /* ADDED: Adds 10% margin on left and right */
+
+}
+
+/* Specific Bar Colors for Team Scores */
+#team-histogram .user-bar { /* More specific selector */
+    background-color: steelblue; /* Your color */
+    margin-left: 40px;
+
+}
+
+#team-histogram .other-bar { /* More specific selector */
+    background-color: lightgray; /* Team color */
+    margin-right: 40px;
+}
+
+/* Remove right margin from the very last bar in the grid */
+#team-histogram .bar:last-child {
+    margin-right: 0;
+}
+
+/* Failed Bar Colors (More Specific) */
+#team-histogram .bar[data-turns="failed"].user-bar {
+    background-color: firebrick;
+    margin-left: 40px;
+
+}
+#team-histogram .bar[data-turns="failed"].other-bar {
+    background-color: #f5c6cb; /* Lighter red */
+    margin-right: 40px;
+}
+
+
+/* Bar Labels (Numbers on top of bars) */
+.bar-label {
+    position: absolute ; /* Force position */
+    top: -20px ; /* Force position */
+    left: 50% ; /* Force position */
+    transform: translateX(-50%) ; /* Force centering */
+    white-space: nowrap ;
+    font-size: 0.8em ;
+    color: black ;
+    font-weight: bold ;
+}
+
+/* X-Axis Labels Container (Specific for Team Scores) */
+#team-scores-container #x-axis-labels {
+    display: grid; /* Use grid to align */
+    grid-template-columns: repeat(7, 1fr); /* 7 Categories */
+    gap: 5px; /* Match histogram gap where possible */
+    width: 100%;
+    margin-top: 25px; /* Space below bars for labels */
+    padding-top: 5px;
+    box-sizing: border-box;
+}
+
+/* Individual X-Axis Label Spans (Specific for Team Scores) */
+#team-scores-container #x-axis-labels span {
+   /* grid-column: span 2; /*  Make labels span 2 grid columns */
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9em;
+   /* margin: 0 -1px; /* Adjust margin slightly for centering over pairs */
+   padding: 0 2px; /* Add slight padding */
+
+}
+
+/* X-Axis Labels (For previous scores) */
+#scores-container #x-axis-labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 Categories */
+    gap: 5px;
+    width: 100%;
+    margin-top: 5px;
+    padding-top: 5px;
+    box-sizing: border-box;
+}
+
+#scores-container #x-axis-labels span {
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    /* grid-column: span 2; /* Make labels span 2 columns under the pairs */
+}
+
+/* Legend Styling */
+#team-scores-legend {
+    position: absolute; /* Position relative to the parent popup */
+    top: 15px;       /* Adjust distance from top */
+    right: 20px;      /* Adjust distance from right */
+    background-color: rgba(255, 255, 255, 0.85); /* Optional semi-transparent background */
+    padding: 8px 12px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-size: 0.8em; /* Smaller font */
+    text-align: left; /* Align text left within the legend */
+    z-index: 10; /* Ensure it's above bars if they overlap somehow */
+}
+
+#team-scores-legend span { /* Style each line in the legend */
+    display: block; /* Stack lines vertically */
+    margin-bottom: 4px; /* Space between lines */
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+#team-scores-legend span:last-child {
+    margin-bottom: 0; /* Remove margin from last item */
+}
+
+/* Color Swatches in Legend */
+.legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    vertical-align: middle; /* Align swatch nicely with text */
+    border-radius: 2px; /* Slightly rounded swatch */
+}
+
+.user-bar-legend {
+    background-color: steelblue; /* Match user bar color */
+}
+
+.other-bar-legend {
+    background-color: lightgray; /* Match other bar color */
 }
