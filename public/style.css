@@ -122,7 +122,7 @@ h1 {
     box-sizing: border-box;
     text-transform: uppercase;
 }
-#restart-button, #scores-button, #team-scores-button{
+#restart-button, #scores-button, #team-scores-button, #invitations-button{
     display: block;
     margin: 10px 0;
     padding: 10px 15px;
@@ -440,4 +440,81 @@ h1 {
 
 .other-bar-legend {
     background-color: lightgray; /* Match other bar color */
+}
+
+/* Invitations Container */
+#invitations-container {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px 30px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 90%;
+    max-width: 600px; /* Adjust as needed */
+    max-height: 90%;
+    overflow-y: auto;
+    text-align: left; /* Align list items left */
+}
+
+#invitations-container h2 {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-align: center; /* Center title */
+    color: #333;
+}
+
+#invitations-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#invitations-list li {
+    padding: 12px 0; /* More padding */
+    border-bottom: 1px solid #eee;
+    display: flex; /* Use flexbox for layout */
+    justify-content: space-between; /* Space out items */
+    align-items: center; /* Center vertically */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 10px; /* Space between elements */
+}
+
+#invitations-list li:last-child {
+    border-bottom: none;
+}
+
+#invitations-list .invite-info {
+    flex-grow: 1; /* Allow info to take available space */
+    font-size: 0.9em;
+}
+
+#invitations-list .invite-info .group-name {
+    font-weight: bold;
+    display: block; /* Put name on its own line */
+    margin-bottom: 4px;
+}
+
+#invitations-list .invite-info .invite-date {
+    color: #666;
+    font-size: 0.8em;
+}
+
+#invitations-list .join-button {
+    padding: 5px 10px; /* Smaller button */
+    font-size: 0.9em;
+    background-color: #5cb85c; /* Green */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+#invitations-list .join-button:hover {
+    background-color: #4cae4c;
 }

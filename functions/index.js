@@ -91,60 +91,116 @@ function generateGroupId() {
  * @throws {functions.https.HttpsError}
  */
 exports.addUserToGroup = functions
-  .runWith({
-    region: "us-central1",
-    memory: "256MB", // Optional: Specify memory for 1st gen
-    gen: 1, // Explicitly specify 1st generation
-  })
- .https.onRequest(async (req, res) => {
-  cors(req, res, async () => {
-    const authHeader = req.headers.authorization;
+    .runWith({
+      region: "us-central1",
+      memory: "256MB", // Optional: Specify memory for 1st gen
+      gen: 1, // Explicitly specify 1st generation
+    })
+    .https.onRequest(async (req, res) => {
+      // Wrap with CORS middleware
+      cors(req, res, async () => {
+        const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).send("Unauthorized: No Bearer token");
-      return;
-    }
-    const idToken = authHeader.split("Bearer ")[1];
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          console.error("addUserToGroup: Unauthorized - No Bearer token");
+          res.status(401).send("Unauthorized: No Bearer token");
+          return;
+        }
+        const idToken = authHeader.split("Bearer ")[1];
 
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const uid = decodedToken.uid;
+        try {
+          const decodedToken = await admin.auth().verifyIdToken(idToken);
+          const inviterUid = decodedToken.uid;
+          const inviterName = decodedToken.name || "A User"; // Get inviter's name from token
 
-      const groupId = req.body.data.groupId;
-      const invitedEmail = req.body.data.invitedEmail;
+          // Ensure data is nested under 'data' for fetch calls
+          if (!req.body || !req.body.data) {
+             res.status(400).send("Bad Request: Missing data object in request body.");
+             return;
+          }
 
-      if (!groupId || !invitedEmail) {
-        res.status(400).send("Bad Request: Missing groupId or invitedEmail");
-        return;
-      }
+          const {groupId, invitedEmail} = req.body.data; // Access nested data
 
-      const groupRef = admin.firestore().collection("groups").doc(groupId);
-      const groupDoc = await groupRef.get();
+          console.log(`addUsrToGrp called groupId=${groupId}, invitedMail=${invitedEmail}, inviterId=${inviterUid}`);
 
-      if (!groupDoc.exists) {
-        res.status(404).send("Not Found: Group does not exist");
-        return;
-      }
-      if (groupDoc.data().createdBy !== uid) {
-        res.status(403).send("Forbidden: Only group creator can add members");
-        return;
-      }
 
-      // Add email to invitedEmails array
-      await groupRef.update({
-        invitedEmails: admin.firestore.FieldValue.arrayUnion(invitedEmail),
+          if (!groupId || !invitedEmail) {
+            console.error("addUserToGroup: Bad Request - Missing groupId or invitedEmail");
+            res.status(400).send("Bad Request: Missing groupId or invitedEmail");
+            return;
+          }
+
+           /* Validate email format (assuming you have isValidEmail function)
+           if (typeof isValidEmail === "function" && !isValidEmail(invitedEmail)) {
+               console.error("addUserToGroup: Invalid email address format");
+               res.status(400).send("Bad Request: Invalid email address format.");
+               return;
+           }*/
+
+          const groupRef = admin.firestore().collection("groups").doc(groupId);
+          const groupDoc = await groupRef.get();
+
+          if (!groupDoc.exists) {
+            console.error(`addUserToGroup: Group not found - ${groupId}`);
+            res.status(404).send("Not Found: Group does not exist");
+            return;
+          }
+
+          const groupData = groupDoc.data();
+          const groupName = groupData.groupName || "Unnamed Group"; // Get group name
+
+          // Check if inviter is the creator (or adjust permissions if needed)
+          if (groupData.createdBy !== inviterUid) {
+             console.error(`addUserToGroup: Permission Denied - User ${inviterUid} is not creator of group ${groupId}`);
+            res.status(403).send("Forbidden: Only group creator can add members");
+            return;
+          }
+
+          // Prevent inviting someone already invited or already a member
+          if (groupData.invitedEmails && groupData.invitedEmails.includes(invitedEmail)) {
+             console.log(`Email ${invitedEmail} already invited to ${groupName}.`);
+             // Send success, but maybe indicate they were already invited
+             res.status(200).send({message: `User ${invitedEmail} was already invited to ${groupName}`});
+             return; // Don't send another email
+          }
+          // Ideally, also check if the email corresponds to an existing member's UID
+
+          // --- Add email to invitedEmails array in Firestore ---
+          await groupRef.update({
+            invitedEmails: admin.firestore.FieldValue.arrayUnion(invitedEmail),
+          });
+          console.log(`Added ${invitedEmail} to invitedEmails for group ${groupId}`);
+
+          // --- Trigger the Email Extension ---
+          const inviteLink = `https://familywordle-c8402.web.app/?groupId=${groupId}`; // Use your production URL
+          const mailData = {
+            to: [invitedEmail], // Must be an array
+            message: {
+              subject: `${inviterName} invited you to join their Wordle group!`,
+              html: `
+                <p>Hello,</p>
+                <p>${inviterName} has invited you to join the Wordle group "<strong>${groupName}</strong>".</p>
+                <p>Click the link below to join the fun:</p>
+                <p><a href="${inviteLink}">${inviteLink}</a></p>
+                <p>Happy Wordling!</p>
+              `,
+            },
+          };
+          // Add the email document to the 'mail' collection
+          await admin.firestore().collection("mail").add(mailData);
+          console.log(`Email document created for ${invitedEmail} for group ${groupId}`);
+          // --- Send Success Response ---
+          res.status(200).send({message: `User ${invitedEmail} invited to ${groupName}`}); // More informative message
+        } catch (error) {
+          console.error("Error in addUserToGroup:", error);
+          if (error.code === "auth/id-token-expired" || error.code === "auth/argument-error") {
+            res.status(401).send("Unauthorized: Invalid token");
+          } else {
+            res.status(500).send("Internal Server Error");
+          }
+        }
       });
-      res.status(200).send({message: `Usr ${invitedEmail} invitd2 ${groupId}`});
-    } catch (error) {
-      console.error("Error adding user to group:", error);
-      if (error.code === "id-token-exprd" || error.code === "arg-error") {
-        res.status(401).send("Unauthorized: Invalid token");
-      } else {
-        res.status(500).send("Internal Server Error");
-      }
-    }
-  });
-});
+    });
 
 /**
  * Allows a user to join a group if they have been invited.

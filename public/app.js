@@ -81,6 +81,11 @@ const teamNameTitle = document.getElementById('team-name-title');
 const backToTeamListButton = document.getElementById('back-to-team-list-button');
 const teamHistogramContainer = document.getElementById('team-histogram');
 
+
+const invitationsButton = document.getElementById('invitations-button');
+const invitationsContainer = document.getElementById('invitations-container');
+const invitationsList = document.getElementById('invitations-list');
+const closeInvitationsX = document.getElementById('close-invitations-x'); // Make sure ID is in HTML
 let currentDisplayMode = 'list'; // 'list' or 'scores'
 
 let wordList = []; // Global to store word list
@@ -202,8 +207,7 @@ loadWordList().then(() => {
 
     createLetterBoxes(); // Create boxes *before* auth state change
 
-    auth.onAuthStateChanged((user) => {
-        
+    auth.onAuthStateChanged(async (user) => {
         if (user) {
             // User is signed in
             console.log('User signed in:', user.uid);
@@ -231,10 +235,16 @@ loadWordList().then(() => {
             scoresButton.style.display = "block";
 
             groupCreationDiv.style.display = "block"; // SHOW the group creation UI
+            invitationsButton.style.display = "block"; // Show invitations button
 
-            restartGame().then(() => {
+
+         /*   restartGame().then(() => {
                 document.addEventListener('keydown', handleKeyDown);
-            });
+            }); */
+
+            await restartGame(); //Await restart to check play status
+            checkInvite();
+        
 
         } else {
             // User is signed out
@@ -249,7 +259,9 @@ loadWordList().then(() => {
             scoresContainer.style.display = 'none';
             document.removeEventListener('keydown', handleKeyDown);
             groupCreationDiv.style.display = 'none'; // Hide it when logged out
-
+            invitationsButton.style.display = "none"; // Hide invitations button
+            invitationsContainer.style.display = 'none'; // Hide invitations list
+            disableGameInput(); // Ensure input is disabled on logout
         }
     });
 });
@@ -274,44 +286,63 @@ async function restartGame() {
     targetWord = await getWordOfTheDay(); // Await the result again
     gameContainer.style.display = 'block';
 //    console.log("target word is " + targetWord);
+    // --- Check if user already played today ---
+    if (auth.currentUser && targetWord !== "cluck") { // Check only if logged in and word is valid
+        try {
+            const gamesRef = db.collection('games');
+            const querySnapshot = await gamesRef
+                .where('userId', '==', auth.currentUser.uid)
+                .where('target', '==', targetWord) // Check for game with today's word
+                .limit(1) // We only need to know if at least one exists
+                .get();
+
+            if (!querySnapshot.empty) {
+                // User has already played this word today
+                console.log("User already played today's word:", targetWord);
+                feedback.textContent = "You've already played today! Come back tomorrow.";
+                // Optionally display their previous result here
+                // displayPreviousResult(querySnapshot.docs[0].data());
+                disableGameInput(); // Disable further input
+            } else {
+                // User has NOT played today, enable input
+                console.log("User has not played today's word yet.");
+                enableGameInput();
+            }
+        } catch (error) {
+            console.error("Error checking previous games:", error);
+            feedback.textContent = "Error checking game status.";
+            disableGameInput(); // Disable input on error
+        }
+    } else if (targetWord === "cluck") {
+         feedback.textContent = "Error loading word list. Try again later.";
+         disableGameInput();
+    } else {
+         enableGameInput(); // Allow play if not logged in (though saving won't work)
+    }
+     console.log("Game ready.");
+
 }
 
 
 restartButton.addEventListener('click', restartGame);
 
-// --- Show Scores Function --- (MODIFIED - Added hiding of team scores)
-scoresButton.addEventListener('click', () => {
-    displayScores(); // Call the function to fetch and display
-    hideGameAndTeamScores();
-    scoresContainer.style.display = 'block'; // Show the scores container
-});
 
-closeScoresButton.addEventListener('click', () => {
+// --- Helper Functions for Hiding Containers (Modified) ---
+function hideGameAndAllScores() {
+    gameContainer.style.display = 'none';
     scoresContainer.style.display = 'none';
-    gameContainer.style.display = "block";
-})
-
-/*
- // --- Show Team Scores Function --- (NEW)
-teamScoresButton.addEventListener('click', () => {
-    displayTeamScores();
-    hideGameAndScores();
-    teamScoresContainer.style.display = 'block';
-});
-
-closeTeamScoresButton.addEventListener('click', () => {
     teamScoresContainer.style.display = 'none';
-    gameContainer.style.display = "block";
-})
-*/
+}
 
 function hideGameAndScores() {
     gameContainer.style.display = 'none';
     scoresContainer.style.display = 'none';
+    invitationsContainer.style.display = 'none'; // Hide invitations too
 }
 function hideGameAndTeamScores(){
     gameContainer.style.display = 'none';
-    teamScoresContainer.style.display = 'none';
+    teamScoresContainer.style.display = "none";
+    invitationsContainer.style.display = 'none'; // Hide invitations too
 }
 
 // --- Show Scores Function ---
@@ -468,6 +499,20 @@ function deleteLetter() {
     }
 }
 
+// --- Enable Game Input ---
+function enableGameInput() {
+    console.log("Enabling keyboard input");
+    document.removeEventListener('keydown', handleKeyDown); // Remove first to prevent duplicates
+    document.addEventListener('keydown', handleKeyDown);
+}
+
+// --- Disable Game Input ---
+function disableGameInput() {
+    console.log("Disabling keyboard input");
+    document.removeEventListener('keydown', handleKeyDown);
+    // Optionally, visually disable the letter boxes too
+}
+
 async function isValidWord(word) {
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
@@ -526,7 +571,9 @@ function checkGuess(guess) {
 
 function endGame() {
     //Game ends remove event listener.
-    document.removeEventListener('keydown', handleKeyDown);
+    console.log("Game Ended")
+    disableGameInput();
+   // document.removeEventListener('keydown', handleKeyDown);
 }
 
 async function saveGameResults(isSuccessful) {
@@ -1174,6 +1221,136 @@ async function displaySingleTeamScores(groupId, groupName) {
     }
 }
 
+// --- Add Event Listener for Invitations Button ---
+invitationsButton.addEventListener('click', () => {
+    displayInvitations();
+    hideGameAndAllScores(); // Helper to hide other popups
+    invitationsContainer.style.display = 'block';
+});
+
+// --- Add Event Listener for Closing Invitations ---
+if (closeInvitationsX) { // Check if the element exists
+    closeInvitationsX.addEventListener('click', () => {
+        invitationsContainer.style.display = 'none';
+        gameContainer.style.display = "block"; // Or maybe don't show game? Decide behavior.
+    });
+} else {
+    console.warn("Element with ID 'close-invitations-x' not found.");
+}
+
+
+// --- NEW: Function to Display Invitations ---
+async function displayInvitations() {
+    invitationsList.innerHTML = ''; // Clear previous list
+
+    if (!auth.currentUser) {
+        invitationsList.innerHTML = '<li>Please sign in to see your invitations.</li>';
+        return;
+    }
+    const currentUserEmail = auth.currentUser.email;
+    if (!currentUserEmail) {
+         invitationsList.innerHTML = '<li>Could not retrieve your email address.</li>';
+         return;
+    }
+
+    try {
+        const querySnapshot = await db.collection('groups')
+            .where('invitedEmails', 'array-contains', currentUserEmail)
+            .get();
+
+        if (querySnapshot.empty) {
+            invitationsList.innerHTML = '<li>No pending invitations found.</li>';
+            return;
+        }
+
+        querySnapshot.forEach(async (doc) => { // Use async for potential inviter lookup
+            const groupId = doc.id;
+            const groupData = doc.data();
+            const groupName = groupData.groupName || 'Unnamed Group';
+            const inviterUid = groupData.createdBy; // UID of the person who created group
+            const createdAtTimestamp = groupData.createdAt;
+            let inviterInfo = 'Inviter info unavailable'; // Default
+
+            // --- Format Date ---
+            let formattedDate = 'Unknown Date';
+            if (createdAtTimestamp) {
+                 try {
+                    const date = createdAtTimestamp.toDate();
+                    formattedDate = date.toLocaleDateString("en-US", {
+                        year: 'numeric', month: 'short', day: 'numeric' // Simpler format
+                    });
+                } catch(dateError){ console.error("Error formatting date:", dateError)}
+            }
+            // --- End Date Format ---
+
+            // --- Create List Item ---
+            const listItem = document.createElement('li');
+
+            const infoSpan = document.createElement('span');
+            infoSpan.classList.add('invite-info');
+            infoSpan.innerHTML = `
+                <span class="group-name">${groupName}</span>
+                <span class="invite-date">Invited on: ${formattedDate}</span>
+                <span class="inviter-info" data-uid="${inviterUid}">Invited by: Loading...</span>
+            `;
+
+            const joinButton = document.createElement('button');
+            joinButton.textContent = 'Join';
+            joinButton.classList.add('join-button');
+            joinButton.onclick = async () => { // Use async for the function call
+                joinButton.textContent = 'Joining...';
+                joinButton.disabled = true;
+                try {
+                    // Use the existing joinGroup cloud function (which checks invite)
+                    const result = await joinGroup({ groupId: groupId });
+                    if (result.data.success) {
+                        alert(`Successfully joined ${groupName}!`);
+                        listItem.remove(); // Remove the invitation from the list
+                        // Optionally, refresh team list or histograms
+                    } else {
+                         alert(`Failed to join ${groupName}.`); // Should not happen if error wasn't thrown
+                         joinButton.textContent = 'Join';
+                         joinButton.disabled = false;
+                    }
+                } catch (error) {
+                    console.error("Error joining group:", error);
+                    alert(`Error joining ${groupName}: ${error.message}`);
+                    joinButton.textContent = 'Join';
+                    joinButton.disabled = false;
+                }
+            };
+
+            listItem.appendChild(infoSpan);
+            listItem.appendChild(joinButton);
+            invitationsList.appendChild(listItem);
+
+            // --- Fetch Inviter Name (Optional, requires users collection) ---
+            // If you decide to add a users collection later:
+            /*
+            try {
+                const inviterDoc = await db.collection('users').doc(inviterUid).get();
+                if (inviterDoc.exists) {
+                    const inviterName = inviterDoc.data().displayName || 'Unknown User';
+                    const inviterSpan = listItem.querySelector('.inviter-info');
+                    if(inviterSpan) inviterSpan.textContent = `Invited by: ${inviterName}`;
+                }
+            } catch (fetchError) {
+                console.error("Could not fetch inviter name:", fetchError);
+            }
+            */
+            // For now, we won't fetch the inviter name as there's no users collection
+            const inviterSpan = listItem.querySelector('.inviter-info');
+            if(inviterSpan) inviterSpan.textContent = `(Group created on ${formattedDate})`;
+
+
+        });
+
+    } catch (error) {
+        console.error("Error fetching invitations:", error);
+        invitationsList.innerHTML = '<li>Error loading invitations.</li>';
+    }
+}
+
 // Event listeners
 teamScoresButton.addEventListener('click', showTeamList);
 closeTeamListButton.addEventListener('click', () => teamListContainer.style.display = 'none');
@@ -1185,6 +1362,7 @@ closeTeamScoresButton.addEventListener('click', () => {
         teamListContainer.style.display = 'none'; // Close if showing list
     }
 });
-  
+
+
 
 });
