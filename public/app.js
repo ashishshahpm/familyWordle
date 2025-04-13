@@ -45,19 +45,19 @@ const userNameSpan = document.getElementById('user-name-sidebar');
 const feedback = document.getElementById("feedback");
 const guessesContainer = document.getElementById("guesses-container");
 const gameContainer = document.getElementById("game-container");
+const restartButton = document.getElementById("restart-button");
 const sidebar = document.getElementById('sidebar');
 
 
 
 //Add Group elements
 const groupNameInput = document.getElementById('group-name'); // NEW
-const inviteLinkInput = document.getElementById('invite-link'); // NEW
-const inviteLinkContainer = document.getElementById('invite-link-container');
+//const inviteLinkInput = document.getElementById('invite-link'); // NEW
+//const inviteLinkContainer = document.getElementById('invite-link-container');
 const groupCreationDiv = document.getElementById('group-creation'); //NEW
 const addGroupMembersDiv = document.getElementById('add-group-members');
 const invitedMemberEmailInput = document.getElementById('invited-member-email');
 const addMemberButton = document.getElementById('add-member');
-const copyLinkButton = document.getElementById('copy-link');
 let currentGroupId = null; //NEW
 const createGroupButton = document.getElementById('create-group-button'); // NEW
 
@@ -89,6 +89,39 @@ let currentDisplayMode = 'list'; // 'list' or 'scores'
 
 let wordList = []; // Global to store word list
 
+window.onload = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupIdFromURL = urlParams.get('groupId');
+
+    if (groupIdFromURL) {
+        console.log("Found groupId in URL:", groupIdFromURL);
+        // Optionally display a "Joining group..." message
+        const joinGroupMessage = document.getElementById('join-group-message'); // Add this ID to an element in your HTML
+        if (joinGroupMessage) {
+            joinGroupMessage.style.display = 'block';
+            joinGroupMessage.textContent = 'Joining group...';
+        }
+
+        if (auth.currentUser) {
+            console.log("User is logged in, calling addUserToGroupMembers");
+            await addUserToGroupMembers(auth.currentUser, groupIdFromURL);
+        } else {
+            // If not logged in, store the groupId and redirect to login
+            console.log("User not logged in, storing pendingGroupId");
+            localStorage.setItem('pendingGroupId', groupIdFromURL);
+            // Update your sign-in button's onclick to handle this
+            const signInButton = document.getElementById('sign-in-button'); // Make sure you have a sign-in button
+            if (signInButton) {
+                signInButton.onclick = () => {
+                    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+                };
+            }
+            if (joinGroupMessage) {
+                joinGroupMessage.textContent = 'Please sign in to join the group.';
+            }
+        }
+    }
+};
 
 //Add user to group function
 async function addUserToGroupMembers(user, groupId) {
@@ -150,6 +183,7 @@ async function loadWordList() {
 }
 
 function disableGame() {
+    restartButton.disabled = true;
     //Also disable keyboard input
     document.removeEventListener('keydown', handleKeyDown);
 }
@@ -176,6 +210,18 @@ loadWordList().then(() => {
         if (user) {
             // User is signed in
             console.log('User signed in:', user.uid);
+            // Check for pending group invite
+            const pendingGroupId = localStorage.getItem('pendingGroupId');
+            if (pendingGroupId) {
+                joinGroup({groupId: pendingGroupId}).then((result) => { //try joining group.
+                    if(result.data.success){
+                        console.log("Successfully joined the group")
+                    }
+                    localStorage.removeItem('pendingGroupId'); // Clear the pending invite
+                }).catch(error => { //catch any error
+                    console.error("Error joining group", error)
+                })
+            }
             userNameSpan.textContent = user.displayName;
             userPhotoImg.src = user.photoURL || ''; //Set src, handle null
             userPhotoImg.style.display = user.photoURL ? 'inline' : 'none';
@@ -184,11 +230,19 @@ loadWordList().then(() => {
             signOutButton.style.display = 'block';
             signInButton.style.display = 'none';
             gameContainer.style.display = 'block';
+            restartButton.style.display = "block";
             scoresButton.style.display = "block";
 
             groupCreationDiv.style.display = "block"; // SHOW the group creation UI
             invitationsButton.style.display = "block"; // Show invitations button
+
+
+         /*   restartGame().then(() => {
+                document.addEventListener('keydown', handleKeyDown);
+            }); */
+
             await restartGame(); //Await restart to check play status
+            checkInvite();
         
 
         } else {
@@ -199,6 +253,7 @@ loadWordList().then(() => {
             userPhotoImg.style.display = 'none';
             userNameSpan.textContent = '';
             gameContainer.style.display = 'none';
+            restartButton.style.display = "none";
             scoresButton.style.display = "none";
             scoresContainer.style.display = 'none';
             document.removeEventListener('keydown', handleKeyDown);
@@ -266,6 +321,10 @@ async function restartGame() {
      console.log("Game ready.");
 
 }
+
+
+restartButton.addEventListener('click', restartGame);
+
 
 // --- Helper Functions for Hiding Containers (Modified) ---
 function hideGameAndAllScores() {
@@ -677,7 +736,6 @@ if (!auth.currentUser) {
 }
 
 try {
-    console.log("Trying to create a group")
     const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup'; // Get from Firebase console
     const idToken = await auth.currentUser.getIdToken();
 
@@ -700,29 +758,18 @@ try {
 
     const result = await response.json();
     const groupId = result.data.groupId;
-    const inviteLink = `${window.location.origin}/?groupId=${groupId}`;
-    inviteLinkInput.value = inviteLink;
-    inviteLinkContainer.style.display = 'block';
+   // const inviteLink = `${window.location.origin}/?groupId=${groupId}`;
+   // inviteLinkInput.value = inviteLink;
+   // inviteLinkContainer.style.display = 'block';
     addGroupMembersDiv.style.display = "block";
     currentGroupId = groupId;
-    copyLinkButton.addEventListener('click', () => {
-        inviteLinkInput.select();
-        document.execCommand('copy');
-        alert("Invite link copied to clipboard!");
-    });
-
+    
 } catch (error) {
     console.error("Error creating group:", error);
     alert("Failed to create group: " + error.message);
 }
 });
    
-// --- Copy Link ----
-copyLinkButton.addEventListener('click', () => {
-    inviteLinkInput.select();
-    document.execCommand('copy');
-    alert("Copied Link")
-});
 
 // --- Add Member to Group ---
 addMemberButton.addEventListener('click', async () => {
@@ -772,6 +819,30 @@ addMemberButton.addEventListener('click', async () => {
     }
 });
 
+
+
+// --- Check for Invitation Link ---
+function checkInvite() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('groupId');
+    if (groupId) {
+        // Store the group ID (e.g., in localStorage)
+        localStorage.setItem('pendingGroupId', groupId);
+        joinGroup({ groupId: groupId }).then((result) => {
+        if (result.data.success) {
+            // Remove the query parameter
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+            alert("Successfully joined the group!");
+            localStorage.removeItem('pendingGroupId')
+
+        }
+    }).catch(error => {
+            console.log("Error Joining Group:", error);
+            alert("Error Joining group:", error.message);
+    })
+    }
+}   
  
 // Function to show the team list
 function showTeamList() {
