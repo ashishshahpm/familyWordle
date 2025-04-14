@@ -51,15 +51,16 @@ const sidebar = document.getElementById('sidebar');
 
 
 //Add Group elements
+const groupCreationDiv = document.getElementById('group-creation'); //NEW
 const groupNameInput = document.getElementById('group-name'); // NEW
+const invitedEmailsInput = document.getElementById('invited-member-email2'); // Get the add members input field
 //const inviteLinkInput = document.getElementById('invite-link'); // NEW
 //const inviteLinkContainer = document.getElementById('invite-link-container');
-const groupCreationDiv = document.getElementById('group-creation'); //NEW
-const addGroupMembersDiv = document.getElementById('add-group-members');
-const invitedMemberEmailInput = document.getElementById('invited-member-email');
-const addMemberButton = document.getElementById('add-member');
+//const addGroupMembersDiv = document.getElementById('add-group-members');
+//const invitedMemberEmailInput = document.getElementById('invited-member-email');
 let currentGroupId = null; //NEW
 const createGroupButton = document.getElementById('create-group-button'); // NEW
+
 
 
 //Add scores elements
@@ -301,7 +302,7 @@ async function restartGame() {
                 feedback.textContent = "You've already played today! Come back tomorrow.";
                 // Optionally display their previous result here
                 // displayPreviousResult(querySnapshot.docs[0].data());
-                disableGameInput(); // Disable further input
+                enableGameInput(); // Disable further input
             } else {
                 // User has NOT played today, enable input
                 console.log("User has not played today's word yet.");
@@ -384,10 +385,10 @@ function handleKeyDown(event) {
 
     const target = event.target; // Get the element where the key press happened
     const groupNameInput = document.getElementById('group-name'); // Get the group name input field
-    const addMembersInput = document.getElementById('invited-member-email'); // Get the add members input field
+    const invitedEmailsInput = document.getElementById('invited-member-email2'); // Get the add members input field
 
     // If the key press happened inside the group name input OR the add members input, do nothing
-    if (target === groupNameInput || target === addMembersInput) {
+    if (target === groupNameInput || target === invitedEmailsInput) {
         return;
     }
 
@@ -725,101 +726,141 @@ function mulberry32(a) {
 
 // --- Create Group Button Listener 
 createGroupButton.addEventListener('click', async () => {
-const groupName = groupNameInput.value.trim();
-if (!groupName) {
-    alert("Please enter a group name.");
-    return;
-}
-if (!auth.currentUser) {
-    alert("You must be signed in to create a group.");
-    return;
-}
+    const groupName = groupNameInput.value.trim();
+    const emailsString = invitedEmailsInput.value.trim();
+    console.log("Emails string:", emailsString); // Log raw email input
 
-try {
-    const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup'; // Get from Firebase console
-    const idToken = await auth.currentUser.getIdToken();
-
-    const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + idToken,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: { groupName: groupName } }),
-    });
-
-    if (!response.ok) {
-        console.error("Error creating group Status:", response.status);
-        const errorText = await response.text();
-        console.error("Error creating group Body:", errorText);
-        alert("Failed to create group: " + response.status + " " + errorText);
-        return;
-    }
-
-    const result = await response.json();
-    const groupId = result.data.groupId;
-   // const inviteLink = `${window.location.origin}/?groupId=${groupId}`;
-   // inviteLinkInput.value = inviteLink;
-   // inviteLinkContainer.style.display = 'block';
-    addGroupMembersDiv.style.display = "block";
-    currentGroupId = groupId;
-    
-} catch (error) {
-    console.error("Error creating group:", error);
-    alert("Failed to create group: " + error.message);
-}
-});
-   
-
-// --- Add Member to Group ---
-addMemberButton.addEventListener('click', async () => {
-    const invitedEmail = invitedMemberEmailInput.value.trim();
-    if (!invitedEmail) {
-        alert("Please enter an email to invite.");
+    if (!groupName) {
+        alert("Please enter a group name.");
         return;
     }
     if (!auth.currentUser) {
-        alert("You must be signed in to add members.");
+        alert("You must be signed in to create a group.");
         return;
     }
-    if (!currentGroupId) {
-        alert("No group selected.");
+    if (!emailsString) {
+        alert("Please enter at least one email address to invite.");
         return;
     }
+
+    // Process emails string into an array
+    const emailsToInvite = emailsString
+        .split(/[\n,]+/)
+        .map(email => email.trim())
+        .filter(email => email !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    console.log("Emails to invite:", emailsToInvite); // Log processed emails
+
+    if (emailsToInvite.length === 0) {
+        alert("Please enter at least one valid email address.");
+        return;
+    }
+
+    createGroupButton.disabled = true;
+    feedback.textContent = "Creating group..."; // Update feedback
+
+    let groupId = null; // Define groupId here to make it accessible in finally
 
     try {
-        const functionUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/addUserToGroup'; // Get from Firebase console
+        // --- 1. Create the Group using fetch ---
+        console.log("Attempting to create group via fetch...");
+        const createGroupUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup';
         const idToken = await auth.currentUser.getIdToken();
+        console.log("Got ID Token for createGroup");
 
-        const response = await fetch(functionUrl, {
+        const response = await fetch(createGroupUrl, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + idToken,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ data: { groupId: currentGroupId, invitedEmail: invitedEmail } }),
+            body: JSON.stringify({ data: { groupName: groupName } }),
         });
 
         if (!response.ok) {
-            console.error("Error adding member Status:", response.status);
             const errorText = await response.text();
-            console.error("Error adding member Body:", errorText);
-            alert("Failed to add member: " + response.status + " " + errorText);
-            return;
+            console.error("Error creating group Status:", response.status);
+            console.error("Error creating group Body:", errorText);
+            throw new Error(`Failed to create group: ${response.status} ${errorText}`);
         }
 
         const result = await response.json();
-        console.log("Add member result:", result);
-        alert(`User ${invitedEmail} has been invited.`);
-        invitedMemberEmailInput.value = ""; // Clear the input
+        groupId = result.data.groupId; // Assign to outer groupId
 
-    } catch (error) {
-        console.error("Error adding member:", error);
-        alert("Failed to add member: " + error.message);
+        if (!groupId) {
+            throw new Error("Group ID not received after creation.");
+        }
+        console.log("Group created with ID:", groupId);
+        currentGroupId = groupId; // *** ASSIGN TO currentGroupId HERE ***
+
+
+        // --- 2. Send Invites using fetch (in parallel) ---
+        feedback.textContent = "Sending invites..."; // Update feedback
+        console.log("Attempting to send invites via fetch for emails:", emailsToInvite);
+        const addUserToGroupUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/addUserToGroup';
+        // We can reuse the idToken obtained earlier
+
+        let invitesSent = 0;
+        let inviteErrors = 0;
+        const invitePromises = emailsToInvite.map(async (email) => {
+            try {
+                 console.log("Value of currentGroupId before addUserToGroup call:", currentGroupId); // Add this log
+                 if (!currentGroupId) { // Add extra safety check
+                    console.error("currentGroupId is null inside map, skipping invite for", email);
+                    inviteErrors++;
+                    return; // Skip this iteration
+                 }
+
+                const inviteResponse = await fetch(addUserToGroupUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken, // Use same token
+                        'Content-Type': 'application/json',
+                    },
+                    // Use the correct currentGroupId variable
+                    body: JSON.stringify({ data: { groupId: currentGroupId, invitedEmail: email } }),
+                });
+
+                if (inviteResponse.ok) {
+                    invitesSent++;
+                    console.log(`Invite request sent for ${email}`);
+                } else {
+                    inviteErrors++;
+                    const errorText = await inviteResponse.text();
+                    console.error(`Error inviting ${email} Status: ${inviteResponse.status}, Body: ${errorText}`);
+                }
+            } catch (inviteError) {
+                inviteErrors++;
+                console.error(`Network error or other issue inviting ${email}:`, inviteError);
+            }
+        });
+
+        // Wait for all invite attempts to finish
+        await Promise.all(invitePromises);
+
+        // Provide final feedback
+        let finalMessage = `Group "${groupName}" created. `;
+        if (invitesSent > 0) {
+            finalMessage += `${invitesSent} invite(s) sent. `;
+        }
+        if (inviteErrors > 0) {
+            finalMessage += `${inviteErrors > 0 ? inviteErrors : ''} invite(s) failed (check console).`; // Simplified
+        }
+        feedback.textContent = finalMessage;
+        // alert(finalMessage); // Alert might be excessive, feedback div is better
+
+        // Reset the form only on complete success (or partial success)
+        groupNameInput.value = '';
+        invitedEmailsInput.value = '';
+
+    } catch (error) { // Catch errors from createGroup or Promise.all
+        console.error("Error in group creation/invite process:", error);
+        feedback.textContent = "Error: " + error.message;
+        // alert("Error creating group or sending invites: " + error.message); // Use feedback div
+    } finally {
+        createGroupButton.disabled = false; // Re-enable button
     }
 });
-
-
+   
 
 // --- Check for Invitation Link ---
 function checkInvite() {
