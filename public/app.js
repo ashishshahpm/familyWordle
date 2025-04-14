@@ -35,6 +35,8 @@ let attempts = 0;
 const maxAttempts = 6;
 let currentRow = 0;
 let currentLetterIndex = 0;
+let absentLetters = new Set(); // Use a Set to store unique absent letters
+
 
 // DOM elements
 const signInButton = document.getElementById('sign-in-button');
@@ -47,6 +49,8 @@ const guessesContainer = document.getElementById("guesses-container");
 const gameContainer = document.getElementById("game-container");
 const restartButton = document.getElementById("restart-button");
 const sidebar = document.getElementById('sidebar');
+const absentLettersDisplay = document.getElementById('absent-letters-display'); // NEW
+
 
 
 
@@ -280,6 +284,8 @@ async function restartGame() {
     feedback.textContent = "";
     scoresContainer.style.display = 'none';
     teamScoresContainer.style.display = "none";
+    absentLetters = new Set(); // Reset the set
+    updateAbsentLettersDisplay(); // Clear the display
 
     createLetterBoxes();
 
@@ -478,7 +484,13 @@ function deleteLetter() {
     // Apply colors
     result.forEach((letterInfo, index) => {
         boxes[index].classList.add(letterInfo.color);
+        // --- ADD Logic to track absent letters ---
+        if (letterInfo.color === 'gray') {
+            absentLetters.add(letterInfo.char.toLowerCase()); // Add lowercase version
+        }
     });
+
+    updateAbsentLettersDisplay(); // Update the display after guess
 
     attempts++; // Increment attempts *after* processing the guess
     if (guess === targetWord) {
@@ -616,6 +628,16 @@ async function saveGameResults(isSuccessful) {
     //    console.log("Game results saved with ID:", docRef.id);
     } catch (error) {
         console.error("Error saving game results:", error);
+    }
+}
+
+// --- NEW: Function to update absent letters display ---
+function updateAbsentLettersDisplay() {
+    if (absentLettersDisplay) { // Check if element exists
+        const sortedAbsent = [...absentLetters].sort(); // Convert Set to array and sort
+        absentLettersDisplay.textContent = sortedAbsent.join(', ').toUpperCase(); // Join, uppercase
+    } else {
+        console.warn("Absent letters display element not found!");
     }
 }
 
