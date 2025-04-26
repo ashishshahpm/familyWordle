@@ -18,8 +18,25 @@ body {
 
 /* Header */
 header {
-    text-align: center;
+    text-align: center; /* This will center the h1 and p if they are block */
     margin-bottom: 20px;
+    position: relative; /* Make the header a positioning context for the menu */
+    display: flex; /* Use flexbox to align title and menu area */
+    justify-content: center; /* Center the main title block */
+    align-items: center; /* Align items vertically */
+}
+
+header h1 {
+    margin-bottom: 0; /* Remove bottom margin if p is on next line */
+    margin-right: auto; /* Push menu to the right if h1 and p are grouped*/
+    /* If h1 and p are separate blocks, this might not be needed,
+       justify-content on header might be enough if you wrap h1 and p */
+}
+
+header p {
+    margin-top: 0; /* Adjust spacing */
+    /* If p is part of the centered block with h1 */
+    margin-right: auto; /* Only if you want title+p to be one block and menu separate */
 }
 
 h1 {
@@ -519,85 +536,66 @@ h1 {
     background-color: #4cae4c;
 }
 
-/* Style the ellipsis button */
+/* Ellipsis Menu Area - Position it to the right */
+#ellipsis-menu-area {
+    position: absolute; /* Position relative to the header */
+    top: 50%; /* Vertically center relative to header's height */
+    right: 0; /* Align to the right edge of the header */
+    transform: translateY(-50%); /* Fine-tune vertical centering */
+    margin-left: 0; /* Override previous auto margin */
+    z-index: 10; /* Ensure it's clickable */
+}
+
 #ellipsis-menu-button {
     background: none;
     border: none;
-    font-size: 1.8em; /* Make dots larger */
-    line-height: 1; /* Adjust line height */
-    padding: 0 5px;
+    font-size: 24px; /* Adjust for desired ellipsis size */
     cursor: pointer;
-    margin-left: 10px; /* Space from other header content */
+    padding: 5px 10px; /* Adjust padding for better click area */
+    color: #333; /* Or your desired icon color */
+}
+#ellipsis-menu-button:hover {
+    color: #000;
 }
 
-/* Style the menu container */
+/* Ellipsis Menu Dropdown Container */
 #ellipsis-menu-container {
     position: absolute;
-    /* Position it relative to #ellipsis-menu-area */
-    top: 100%; /* Place it right below the button */
-    right: 0;  /* Align to the right edge of the area */
+    top: 100%; /* Position it right below the button */
+    right: 0;  /* Align with the right edge of the button/area */
     background-color: white;
     border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    padding: 10px;
-    min-width: 150px; /* Minimum width */
-    z-index: 1001; /* Ensure it's above other elements */
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    z-index: 1000; /* Make sure it's on top */
+    min-width: 150px; /* Give it some width */
 }
 
-/* Class to hide the menu */
-.menu-hidden {
-    display: none;
-}
-
-/* Class to show the menu (replaces .menu-hidden) */
-#ellipsis-menu-container.is-visible {
-    display: block; /* Or 'flex', 'grid' if needed for layout inside */
-}
-
-/* Style buttons inside the menu */
+/* Styling for buttons inside the menu */
 #ellipsis-menu-container button {
-    display: block; /* Make each button take full width */
+    display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 15px;
     text-align: left;
     background: none;
     border: none;
-    cursor: pointer;
-    margin-bottom: 5px; /* Spacing between buttons */
+    border-bottom: 1px solid #eee; /* Separator lines */
+    font-size: 14px; /* Adjust as needed */
+    color: #333;
 }
 
 #ellipsis-menu-container button:last-child {
-    margin-bottom: 0;
+    border-bottom: none;
 }
 
 #ellipsis-menu-container button:hover {
-    background-color: #f0f0f0; /* Hover effect */
+    background-color: #f0f0f0;
 }
 
-/* Target ANY button element when it's inside the menu container */
-#ellipsis-menu-container button { 
-    /* Override old styles or set menu-specific styles */
-    background: none;       /* Remove any inherited background */
-    color: #333333;        /* Set dark text color */
-    width: 100%;          /* Make it full width of the menu container */
-    margin: 0 0 5px 0;    /* Reset margin (e.g., just 5px bottom margin) */
-    padding: 8px 12px;    /* Adjust padding for menu items */
-    border-radius: 0;     /* Remove rounded corners */
-    text-align: left;       /* Ensure text aligns left, typical for menus */
-
-    /* Keep useful styles */
-    display: block;
-    font-size: 16px;      /* Keep font size or adjust if desired */
-    border: none;
-    cursor: pointer;
+/* Keep .menu-hidden as you have it for JS toggle */
+.menu-hidden {
+    display: none;
 }
-
-/* Add a hover effect for ANY button inside the menu */
-#ellipsis-menu-container button:hover {
-    background-color: #f0f0f0; /* Light gray background on hover */
-    color: #333333;            /* Keep text dark on hover */
-}
-/* --- End of styles for buttons in menu --- */
 
 #absent-letters-container {
     margin-top: 20px;
