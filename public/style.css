@@ -598,3 +598,15 @@ h1 {
     color: #333333;            /* Keep text dark on hover */
 }
 /* --- End of styles for buttons in menu --- */
+
+#absent-letters-container {
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #555;
+    text-align: center; /* Center the text */
+}
+
+#absent-letters-display {
+    font-weight: bold;
+    margin-left: 5px;
+}
