@@ -20,7 +20,6 @@ const functions = firebase.functions();
 
 // Get references to your Cloud Functions (Namespaced API)
 const createGroup = functions.httpsCallable('createGroup');
-//console.log("createGroup function:", createGroup); // Add this
 const addUserToGroup = functions.httpsCallable('addUserToGroup');
 const joinGroup = functions.httpsCallable('joinGroup');
 
@@ -105,7 +104,6 @@ const histogramContainer = document.getElementById('histogram');
 //Add team elements
 const teamScoresContainer = document.getElementById('team-scores-container');
 const teamScoresButton = document.getElementById('team-scores-button');
-console.log("Initial check - teamScoresButton element:", teamScoresButton); // <-- ADD THIS
 const closeTeamScoresButton = document.getElementById('close-team-scores-button');
 const teamListContainer = document.getElementById('team-list-container');
 const teamList = document.getElementById('team-list');
@@ -128,7 +126,6 @@ window.onload = async () => {
     const groupIdFromURL = urlParams.get('groupId');
 
     if (groupIdFromURL) {
-        console.log("Found groupId in URL:", groupIdFromURL);
         // Optionally display a "Joining group..." message
         const joinGroupMessage = document.getElementById('join-group-message'); // Add this ID to an element in your HTML
         if (joinGroupMessage) {
@@ -137,11 +134,9 @@ window.onload = async () => {
         }
 
         if (auth.currentUser) {
-            console.log("User is logged in, calling addUserToGroupMembers");
             await addUserToGroupMembers(auth.currentUser, groupIdFromURL);
         } else {
             // If not logged in, store the groupId and redirect to login
-            console.log("User not logged in, storing pendingGroupId");
             localStorage.setItem('pendingGroupId', groupIdFromURL);
             // Update your sign-in button's onclick to handle this
             const signInButton = document.getElementById('sign-in-button'); // Make sure you have a sign-in button
@@ -203,7 +198,6 @@ async function loadWordList() {
     try {
         const querySnapshot = await db.collection('words').get();
         wordList = querySnapshot.docs.map(doc => doc.data().word);
-       // console.log("Word list loaded:", wordList.length, "words");
         if (wordList.length === 0) {
             console.warn("Word list from Firestore is empty!");
             feedback.textContent = "Error: Word list is empty. Cannot start game.";
@@ -236,8 +230,6 @@ signOutButton.addEventListener('click', () => {
 
 // --- Load word list, *then* create letter boxes and initialize the game ---
 loadWordList().then(() => {
-    // *After* word list is loaded:
-
     createLetterBoxes(); // Create boxes *before* auth state change
 
     auth.onAuthStateChanged(async (user) => {
@@ -259,19 +251,26 @@ loadWordList().then(() => {
             userNameSpan.textContent = user.displayName;
             userPhotoImg.src = user.photoURL || ''; //Set src, handle null
             userPhotoImg.style.display = user.photoURL ? 'inline' : 'none';
-
             userInfoDiv.style.display = 'block';
             signOutButton.style.display = 'block';
             signInButton.style.display = 'none';
             gameContainer.style.display = 'block';
-            //restartButton.style.display = "block";
             scoresButton.style.display = "block";
-
             groupCreationDiv.style.display = "block"; // SHOW the group creation UI
             invitationsButton.style.display = "block"; // Show invitations button
 
             await restartGame(); //Await restart to check play status
             checkInvite();
+            document.addEventListener('keydown', handleKeyDown);
+            if (guessesContainer && hiddenInput) {
+                guessesContainer.addEventListener('click', () => {
+                    hiddenInput.focus();
+                });
+
+                // *** ADD INPUT LISTENER TO HIDDEN INPUT ***
+                hiddenInput.addEventListener('input', handleHiddenInput);
+            }
+
         
 
         } else {
@@ -282,29 +281,18 @@ loadWordList().then(() => {
             userPhotoImg.style.display = 'none';
             userNameSpan.textContent = '';
             gameContainer.style.display = 'none';
-            //restartButton.style.display = "none";
             scoresButton.style.display = "none";
             scoresContainer.style.display = 'none';
             document.removeEventListener('keydown', handleKeyDown);
+            if (hiddenInput) { // Remove input listener on logout
+                hiddenInput.removeEventListener('input', handleHiddenInput);
+            }
             groupCreationDiv.style.display = 'none'; // Hide it when logged out
             invitationsButton.style.display = "none"; // Hide invitations button
             invitationsContainer.style.display = 'none'; // Hide invitations list
             disableGameInput(); // Ensure input is disabled on logout
         }
     });
-
-    // --- ADD Focus Trigger FOR MOBILE (AFTER Auth Setup) ---
-    if (guessesContainer && hiddenInput) {
-        // Use 'click' - mobile browsers often translate taps to clicks
-        guessesContainer.addEventListener('click', () => {
-            console.log("Game area clicked, focusing hidden input for mobile keyboard.");
-            hiddenInput.focus(); // Focus the hidden input
-        });
-        console.log("Added click listener to guessesContainer for mobile keyboard focus.");
-    } else {
-        console.error("Could not find guessesContainer or hiddenInput to attach mobile keyboard trigger.");
-    }
-    // --- END Focus Trigger ---
     });
 
 
@@ -326,7 +314,6 @@ async function restartGame() {
 
     targetWord = await getWordOfTheDay(); // Await the result again
     gameContainer.style.display = 'block';
-//    console.log("target word is " + targetWord);
     // --- Check if user already played today ---
     if (auth.currentUser && targetWord !== "cluck") { // Check only if logged in and word is valid
         try {
@@ -360,8 +347,6 @@ async function restartGame() {
     } else {
          enableGameInput(); // Allow play if not logged in (though saving won't work)
     }
-     console.log("Game ready.");
-
 }
 
 
@@ -403,7 +388,6 @@ closeScoresButton.addEventListener('click', () => {
 // --- Game Logic ---
 
 function createLetterBoxes() {
-   // console.log("createLetterBoxes called");
     guessesContainer.innerHTML = ''; // Clear any existing boxes
     for (let i = 0; i < maxAttempts; i++) {
         const row = document.createElement('div');
@@ -421,10 +405,10 @@ function createLetterBoxes() {
 
 
 function handleKeyDown(event) {
-    console.log("handleKeyDown fired! Key:", event.key, "Target:", event.target); // <-- ADD THIS FIRST LINE
     if (attempts >= maxAttempts) return; // Prevent input after game over
     if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
 
+    const key = event.key.toLowerCase();
     const target = event.target; // Get the element where the key press happened
     const groupNameInput = document.getElementById('group-name'); // Get the group name input field
     const invitedEmailsInput = document.getElementById('invited-member-email2'); // Get the add members input field
@@ -434,31 +418,42 @@ function handleKeyDown(event) {
         return;
     }
 
-    const key = event.key.toLowerCase();
-    // console.log("Key pressed:", key);
+    // If the event target is the hidden input, prevent default for certain keys
+    // to avoid double handling if `input` event also processes it.
+    if (target === hiddenInput && /^[a-z]$/.test(key)) {
+        event.preventDefault(); // Prevent letter from appearing in hidden input if keydown also handles it
+        // We are relying on the 'input' event for letters from virtual keyboard
+        return; // Let the 'input' event handle letters from virtual keyboard
+    }
+
 
     if (key === 'enter') {
         submitGuess();
     } else if (key === 'backspace') {
         deleteLetter();
-    } else if (/^[a-z]$/.test(key)) { // Check if it's a letter
-        // console.log (target)
-        if (target.classList.contains('letter-box')) {
-            addLetter(key); // Add to letter box
-        }
-        else {
-            addLetter(key); // Add to wordle
-        }
+    } else if (/^[a-z]$/.test(key) && target !== hiddenInput) {
+        // This handles physical keyboard letters if focus isn't on hiddenInput,
+        // or if the 'input' event somehow doesn't catch it.
+        addLetter(key);
     }
 }
 
+   // --- NEW: Handler for the 'input' event on the hidden input ---
+function handleHiddenInput(event) {
+    const typedValue = event.target.value;
+    if (typedValue && /^[a-z]$/i.test(typedValue.slice(-1))) { // Check last char is a letter
+        const lastChar = typedValue.slice(-1).toLowerCase();
+        addLetter(lastChar);
+    }
+    // ALWAYS clear the hidden input immediately after processing
+    event.target.value = "";
+}
+
 function addLetter(letter) {
-    // console.log("addLetter called with:", letter);
     if (currentLetterIndex < 5) {
         const row = document.getElementById(`row-${currentRow}`);
-        // console.log("Current Row:", currentRow);
         if (!row) {
-            // console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
+            console.error("Row not found:", currentRow); // CRITICAL ERROR CHECK
             return; // Exit if row not found
         }
         const boxes = row.querySelectorAll('.letter-box');
@@ -473,7 +468,6 @@ function addLetter(letter) {
 }
 
 function deleteLetter() {
-    // console.log("deleteLetter called");
     if (currentLetterIndex > 0) {
         currentLetterIndex--;
         const row = document.getElementById(`row-${currentRow}`);
@@ -492,7 +486,6 @@ function deleteLetter() {
 
  // --- Submit Guess (Modified) ---
  async function submitGuess() {
-    console.log("submitGuess called");
     if (currentLetterIndex !== 5) {
         feedback.textContent = "Enter a 5-letter word.";
         return;
@@ -505,8 +498,6 @@ function deleteLetter() {
         guess += box.textContent.toLowerCase();
     });
 
-    //console.log("Submitting guess:", guess);
-
     // Check word validity *before* proceeding
     if (!(await isValidWord(guess))) {
         feedback.textContent = "Not a valid word.";
@@ -515,7 +506,6 @@ function deleteLetter() {
 
 
     const result = checkGuess(guess);
-    // console.log("Result:", JSON.stringify(result));
 
     // Apply colors
     result.forEach((letterInfo, index) => {
@@ -543,14 +533,12 @@ function deleteLetter() {
 
 // --- Enable Game Input ---
 function enableGameInput() {
-    console.log("Enabling keyboard input2");
     document.removeEventListener('keydown', handleKeyDown); // Remove first to prevent duplicates
     document.addEventListener('keydown', handleKeyDown);
 }
 
 // --- Disable Game Input ---
 function disableGameInput() {
-    console.log("Disabling keyboard input");
     document.removeEventListener('keydown', handleKeyDown);
     // Optionally, visually disable the letter boxes too
 }
@@ -580,8 +568,7 @@ function checkGuess(guess) {
     let result = [];
     let targetLetters = [...targetWord.toLowerCase()]; // Convert to lowercase AND copy
     let guessLetters = [...guess.toLowerCase()];      // Convert to lowercase AND copy
-    //console.log (`Guess is ${guess}`)
-    console.log (`Target Word is ${targetWord}`)
+    //console.log (`Target Word is ${targetWord}`)
 
     // First pass: check for exact matches (green)
     for (let i = 0; i < guessLetters.length; i++) { //use a for loop
@@ -595,7 +582,6 @@ function checkGuess(guess) {
         }
     }
 
-   // console.log("First check Result:", JSON.stringify(result));
 
 
     // Second pass: check for partial matches (orange)
@@ -606,16 +592,12 @@ function checkGuess(guess) {
             targetLetters[targetIndex] = null;
         }
     }
-    // console.log("Second check Result:", JSON.stringify(result));
 
     return result;
 }
 
 function endGame() {
-    //Game ends remove event listener.
-    console.log("Game Ended")
     disableGameInput();
-   // document.removeEventListener('keydown', handleKeyDown);
 }
 
 async function saveGameResults(isSuccessful) {
@@ -651,11 +633,9 @@ async function saveGameResults(isSuccessful) {
         turns: isSuccessful ? attempts : "failed",
         guesses: guesses,
     };
-    // console.log(gameResult);
 
     try {
         const docRef = await db.collection('games').add(gameResult);
-    //    console.log("Game results saved with ID:", docRef.id);
     } catch (error) {
         console.error("Error saving game results:", error);
     }
@@ -745,7 +725,6 @@ async function getWordOfTheDay() {
     // Use isValidWord to check against the dictionary API
     try {
         if (await isValidWord(potentialWord)) {
-            // console.log("Word of the day:", potentialWord);
             return potentialWord;
         } else {
             console.warn("Selected word was invalid (API check). Returning 'cluck'.");
@@ -770,7 +749,6 @@ function mulberry32(a) {
 createGroupButton.addEventListener('click', async () => {
     const groupName = groupNameInput.value.trim();
     const emailsString = invitedEmailsInput.value.trim();
-    console.log("Emails string:", emailsString); // Log raw email input
 
     if (!groupName) {
         alert("Please enter a group name.");
@@ -790,7 +768,6 @@ createGroupButton.addEventListener('click', async () => {
         .split(/[\n,]+/)
         .map(email => email.trim())
         .filter(email => email !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-    console.log("Emails to invite:", emailsToInvite); // Log processed emails
 
     if (emailsToInvite.length === 0) {
         alert("Please enter at least one valid email address.");
@@ -804,11 +781,8 @@ createGroupButton.addEventListener('click', async () => {
 
     try {
         // --- 1. Create the Group using fetch ---
-        console.log("Attempting to create group via fetch...");
         const createGroupUrl = 'https://us-central1-familywordle-c8402.cloudfunctions.net/createGroup';
         const idToken = await auth.currentUser.getIdToken();
-        console.log("Got ID Token for createGroup");
-
         const response = await fetch(createGroupUrl, {
             method: 'POST',
             headers: {
@@ -978,8 +952,6 @@ async function displaySingleTeamScores(groupId, groupName) {
     }
 
     const currentUserId = auth.currentUser.uid;
-    console.log(`Displaying single team score for Group: ${groupName} (${groupId}) | Current User: ${currentUserId}`);
-
 
     try { // Use try...catch for robustness
         const groupDoc = await db.collection('groups').doc(groupId).get();
@@ -997,14 +969,9 @@ async function displaySingleTeamScores(groupId, groupName) {
             return;
         }
 
-        console.log("Group Members:", groupMembers);
-        console.log("Group Created At:", groupCreatedAtDate);
-
         const querySnapshot = await db.collection('games')
             .where('userId', 'in', groupMembers)
             .get();
-
-        console.log(`Total games found for members: ${querySnapshot.size}`);
 
         const userTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
         const otherTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
@@ -1024,10 +991,8 @@ async function displaySingleTeamScores(groupId, groupName) {
                     // Check if gameTurns is a valid key (1-6 or 'failed')
                     if (userTurnCounts.hasOwnProperty(gameTurns)) {
                         if (gameUserId === currentUserId) {
-                           // console.log("   -> Belongs to current user.");
                             userTurnCounts[gameTurns]++;
                         } else {
-                           // console.log("   -> Belongs to other user.");
                             otherTurnCounts[gameTurns]++;
                         }
                     } else {
@@ -1039,11 +1004,6 @@ async function displaySingleTeamScores(groupId, groupName) {
             }
         });
 
-        console.log("Games processed since creation:", gamesSinceCreationCount);
-        console.log("User Turn Counts:", JSON.stringify(userTurnCounts));
-        console.log("Other Turn Counts:", JSON.stringify(otherTurnCounts));
-
-
         if (gamesSinceCreationCount === 0) {
             teamHistogramContainer.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
             return;
@@ -1054,7 +1014,6 @@ async function displaySingleTeamScores(groupId, groupName) {
         allTurnCounts['failed'] = userTurnCounts['failed'] + otherTurnCounts['failed'];
         let maxCount = Math.max(...Object.values(allTurnCounts));
         if (maxCount === 0) maxCount = 1; // Avoid division by zero
-         console.log("Max Count for scaling:", maxCount);
 
         // --- Draw histogram bars directly into teamHistogramContainer ---
         for (let i = 1; i <= 6; i++) {
