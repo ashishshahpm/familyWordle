@@ -36,7 +36,7 @@ const signInButton = document.getElementById('sign-in-button');
 const signOutButton = document.getElementById('sign-out-button');
 const userInfoDiv = document.getElementById('user-info-sidebar');
 const userPhotoImg = document.getElementById('user-photo-sidebar');
-const userNameSpan = document.getElementById('user-name-sidebar');
+//const userNameSpan = document.getElementById('user-name-sidebar');
 const feedback = document.getElementById("feedback");
 const guessesContainer = document.getElementById("guesses-container");
 const hiddenInput = document.getElementById('hidden-input-trigger'); // Get hidden input
@@ -250,7 +250,7 @@ loadWordList().then(() => {
                     console.error("Error joining group", error)
                 })
             }
-            userNameSpan.textContent = user.displayName;
+            //userNameSpan.textContent = user.displayName;
             userPhotoImg.src = user.photoURL || ''; //Set src, handle null
             userPhotoImg.style.display = user.photoURL ? 'inline' : 'none';
             userInfoDiv.style.display = 'block';
@@ -281,7 +281,7 @@ loadWordList().then(() => {
             signOutButton.style.display = 'none';
             signInButton.style.display = 'block';
             userPhotoImg.style.display = 'none';
-            userNameSpan.textContent = '';
+            //userNameSpan.textContent = '';
             gameContainer.style.display = 'none';
             scoresButton.style.display = "none";
             scoresContainer.style.display = 'none';

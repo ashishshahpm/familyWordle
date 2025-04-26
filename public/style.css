@@ -18,67 +18,113 @@ body {
 
 /* Header */
 header {
-    text-align: center; /* This will center the h1 and p if they are block */
     margin-bottom: 20px;
     position: relative; /* Make the header a positioning context for the menu */
     display: flex; /* Use flexbox to align title and menu area */
-    justify-content: center; /* Center the main title block */
+    justify-content: space-between; /* IMPORTANT: Pushes title left, controls right */
     align-items: center; /* Align items vertically */
+    padding: 10px 0; /* Add some vertical padding if desired */
+}
+
+.header-title-area {
+    text-align: left; /* Or center if you prefer */
+    /* flex-grow: 1; Optionally allow title to take more space */
 }
 
 header h1 {
     margin-bottom: 0; /* Remove bottom margin if p is on next line */
-    margin-right: auto; /* Push menu to the right if h1 and p are grouped*/
+    margin-top: 0; /* Add if needed for vertical alignment */
     /* If h1 and p are separate blocks, this might not be needed,
        justify-content on header might be enough if you wrap h1 and p */
 }
 
-header p {
-    margin-top: 0; /* Adjust spacing */
-    /* If p is part of the centered block with h1 */
-    margin-right: auto; /* Only if you want title+p to be one block and menu separate */
-}
 
-h1 {
-    margin-bottom: 5px; /* Reduce spacing between title and subtitle */
+/* New Wrapper for User Info & Ellipsis Menu */
+#header-right-controls {
+    display: flex;
+    align-items: center; /* Vertically align photo and ellipsis button */
+    gap: 10px; /* Space between photo and ellipsis button */
 }
-
-/* Sidebar */
-#sidebar {
-    position: absolute; /* Take it out of the normal flow */
-    top: 0;
-    left: -250px; /* Initially hidden off-screen */
-    width: 250px;
-    height: 100%;
-    background-color: #f8f8f8;
-    border-right: 1px solid #ccc;
-    padding: 20px;
-    box-sizing: border-box;
-    transition: left 0.3s ease; /* Smooth transition for sliding */
-    z-index: 100; /* Ensure it's above other content */
-}
-
-#sidebar.open {
-    left: 0; /* Slide in when open */
-}
-
 
 #user-info-sidebar {
-    display: flex;
-    flex-direction: column; /* Stack items vertically */
+    display: none; /* Initially hidden, show on login */
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-      border-bottom: 1px solid #ccc;  /* Add a subtle bottom border */
 }
-
 
 #user-photo-sidebar {
-    width: 60px; /* Larger photo in sidebar */
-    height: 60px;
+    width: 40px; /* Adjust size */
+    height: 40px;
     border-radius: 50%;
-    margin-bottom: 10px;
+    display: none; /* Initially hidden, show on login */
 }
+
+/* Ellipsis Menu Area - Position it to the right */
+#ellipsis-menu-area {
+    position: relative; /* For the dropdown */
+}
+
+
+#ellipsis2-menu-area {
+    position: absolute; /* Position relative to the header */
+    top: 50%; /* Vertically center relative to header's height */
+    right: 0; /* Align to the right edge of the header */
+    transform: translateY(-50%); /* Fine-tune vertical centering */
+    margin-left: 0; /* Override previous auto margin */
+    z-index: 10; /* Ensure it's clickable */
+}
+
+#ellipsis-menu-button {
+    background: none;
+    border: none;
+    font-size: 24px; /* Adjust for desired ellipsis size */
+    cursor: pointer;
+    padding: 5px 10px; /* Adjust padding for better click area */
+    color: #333; /* Or your desired icon color */
+}
+#ellipsis-menu-button:hover {
+    color: #000;
+}
+
+/* Ellipsis Menu Dropdown Container */
+#ellipsis-menu-container {
+    position: absolute;
+    top: 100%; /* Position it right below the button */
+    right: 0;  /* Align with the right edge of the button/area */
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    z-index: 1000; /* Make sure it's on top */
+    min-width: 150px; /* Give it some width */
+}
+
+/* Styling for buttons inside the menu */
+#ellipsis-menu-container button {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eee; /* Separator lines */
+    font-size: 14px; /* Adjust as needed */
+    color: #333;
+}
+
+#ellipsis-menu-container button:last-child {
+    border-bottom: none;
+}
+
+#ellipsis-menu-container button:hover {
+    background-color: #f0f0f0;
+}
+
+/* Keep .menu-hidden as you have it for JS toggle */
+.menu-hidden {
+    display: none;
+}
+
+
 
 /* Sign-In/Out Buttons */
 #sign-in-button,
@@ -536,66 +582,7 @@ h1 {
     background-color: #4cae4c;
 }
 
-/* Ellipsis Menu Area - Position it to the right */
-#ellipsis-menu-area {
-    position: absolute; /* Position relative to the header */
-    top: 50%; /* Vertically center relative to header's height */
-    right: 0; /* Align to the right edge of the header */
-    transform: translateY(-50%); /* Fine-tune vertical centering */
-    margin-left: 0; /* Override previous auto margin */
-    z-index: 10; /* Ensure it's clickable */
-}
 
-#ellipsis-menu-button {
-    background: none;
-    border: none;
-    font-size: 24px; /* Adjust for desired ellipsis size */
-    cursor: pointer;
-    padding: 5px 10px; /* Adjust padding for better click area */
-    color: #333; /* Or your desired icon color */
-}
-#ellipsis-menu-button:hover {
-    color: #000;
-}
-
-/* Ellipsis Menu Dropdown Container */
-#ellipsis-menu-container {
-    position: absolute;
-    top: 100%; /* Position it right below the button */
-    right: 0;  /* Align with the right edge of the button/area */
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-    z-index: 1000; /* Make sure it's on top */
-    min-width: 150px; /* Give it some width */
-}
-
-/* Styling for buttons inside the menu */
-#ellipsis-menu-container button {
-    display: block;
-    width: 100%;
-    padding: 10px 15px;
-    text-align: left;
-    background: none;
-    border: none;
-    border-bottom: 1px solid #eee; /* Separator lines */
-    font-size: 14px; /* Adjust as needed */
-    color: #333;
-}
-
-#ellipsis-menu-container button:last-child {
-    border-bottom: none;
-}
-
-#ellipsis-menu-container button:hover {
-    background-color: #f0f0f0;
-}
-
-/* Keep .menu-hidden as you have it for JS toggle */
-.menu-hidden {
-    display: none;
-}
 
 #absent-letters-container {
     margin-top: 20px;
