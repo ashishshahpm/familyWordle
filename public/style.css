@@ -122,7 +122,7 @@ h1 {
     box-sizing: border-box;
     text-transform: uppercase;
 }
-#restart-button, #scores-button, #team-scores-button, #invitations-button{
+#restart-button{
     display: block;
     margin: 10px 0;
     padding: 10px 15px;
@@ -519,14 +519,82 @@ h1 {
     background-color: #4cae4c;
 }
 
-#absent-letters-container {
-    margin-top: 20px;
-    font-size: 0.9em;
-    color: #555;
-    text-align: center; /* Center the text */
+/* Style the ellipsis button */
+#ellipsis-menu-button {
+    background: none;
+    border: none;
+    font-size: 1.8em; /* Make dots larger */
+    line-height: 1; /* Adjust line height */
+    padding: 0 5px;
+    cursor: pointer;
+    margin-left: 10px; /* Space from other header content */
 }
 
-#absent-letters-display {
-    font-weight: bold;
-    margin-left: 5px;
+/* Style the menu container */
+#ellipsis-menu-container {
+    position: absolute;
+    /* Position it relative to #ellipsis-menu-area */
+    top: 100%; /* Place it right below the button */
+    right: 0;  /* Align to the right edge of the area */
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 10px;
+    min-width: 150px; /* Minimum width */
+    z-index: 1001; /* Ensure it's above other elements */
 }
+
+/* Class to hide the menu */
+.menu-hidden {
+    display: none;
+}
+
+/* Class to show the menu (replaces .menu-hidden) */
+#ellipsis-menu-container.is-visible {
+    display: block; /* Or 'flex', 'grid' if needed for layout inside */
+}
+
+/* Style buttons inside the menu */
+#ellipsis-menu-container button {
+    display: block; /* Make each button take full width */
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 5px; /* Spacing between buttons */
+}
+
+#ellipsis-menu-container button:last-child {
+    margin-bottom: 0;
+}
+
+#ellipsis-menu-container button:hover {
+    background-color: #f0f0f0; /* Hover effect */
+}
+
+/* Target ANY button element when it's inside the menu container */
+#ellipsis-menu-container button { 
+    /* Override old styles or set menu-specific styles */
+    background: none;       /* Remove any inherited background */
+    color: #333333;        /* Set dark text color */
+    width: 100%;          /* Make it full width of the menu container */
+    margin: 0 0 5px 0;    /* Reset margin (e.g., just 5px bottom margin) */
+    padding: 8px 12px;    /* Adjust padding for menu items */
+    border-radius: 0;     /* Remove rounded corners */
+    text-align: left;       /* Ensure text aligns left, typical for menus */
+
+    /* Keep useful styles */
+    display: block;
+    font-size: 16px;      /* Keep font size or adjust if desired */
+    border: none;
+    cursor: pointer;
+}
+
+/* Add a hover effect for ANY button inside the menu */
+#ellipsis-menu-container button:hover {
+    background-color: #f0f0f0; /* Light gray background on hover */
+    color: #333333;            /* Keep text dark on hover */
+}
+/* --- End of styles for buttons in menu --- */

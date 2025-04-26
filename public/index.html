@@ -12,26 +12,30 @@
         <header>
             <h1>Family Wordle</h1>
             <p>Guess the 5-letter word!</p>
+            <div id="ellipsis-menu-area" style="position: relative; margin-left: auto;"> <button id="ellipsis-menu-button" aria-label="More options">&#8942;</button> 
+                <div id="ellipsis-menu-container" class="menu-hidden"> 
+                    <button id="invitations-button">Invitations</button>
+                    <button id="scores-button">Previous Scores</button>
+                    <button id="team-scores-button">Team Scores</button>
+                    <button id="sign-out-button">Sign Out</button>
+                </div>
+            </div>
+
+            <div id="sidebar">
+                <div id="user-info-sidebar">
+                    <img id="user-photo-sidebar" src="" alt="User Photo" style="display: none;">
+                    <span id="user-name-sidebar"></span>
+                </div>
+            </div>
         </header>
 
-        <div id="sidebar">
-            <div id="user-info-sidebar">
-                <img id="user-photo-sidebar" src="" alt="User Photo" style="display: none;">
-                <span id="user-name-sidebar"></span>
-                <button id="sign-out-button">Sign Out</button>
-            </div>
-            <button id="restart-button">Restart Game</button>
-            <button id="scores-button">Previous Scores</button>
-            <button id="team-scores-button">Team Scores</button>
-            <button id="invitations-button">Invitations</button>
-         </div>
 
         <button id="sign-in-button">Sign in with Google</button>
 
         <div id="game-container">
+            <input type="text" id="hidden-input-trigger" aria-hidden="true" style="position:absolute; top:-9999px; left:-9999px; opacity:0; pointer-events:none;">
             <div id="guesses-container"></div>
             <div id="feedback"></div>
-            <div id="absent-letters-container"> Absent Letters: <span id="absent-letters-display"></span>
         </div>
 
         <div id="team-scores-container">

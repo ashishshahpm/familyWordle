@@ -17,11 +17,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const functions = firebase.functions();
-/*
-console.log("functions object:", functions); // Log the functions object
-console.log("httpsCallable property:", functions ? functions.httpsCallable : 'functions is null/undefined'); // Check for httpsCallable
-console.log("✅ Firebase Initialized");
-*/
 
 // Get references to your Cloud Functions (Namespaced API)
 const createGroup = functions.httpsCallable('createGroup');
@@ -35,8 +30,6 @@ let attempts = 0;
 const maxAttempts = 6;
 let currentRow = 0;
 let currentLetterIndex = 0;
-let absentLetters = new Set(); // Use a Set to store unique absent letters
-
 
 // DOM elements
 const signInButton = document.getElementById('sign-in-button');
@@ -46,12 +39,48 @@ const userPhotoImg = document.getElementById('user-photo-sidebar');
 const userNameSpan = document.getElementById('user-name-sidebar');
 const feedback = document.getElementById("feedback");
 const guessesContainer = document.getElementById("guesses-container");
+const hiddenInput = document.getElementById('hidden-input-trigger'); // Get hidden input
 const gameContainer = document.getElementById("game-container");
-const restartButton = document.getElementById("restart-button");
 const sidebar = document.getElementById('sidebar');
-const absentLettersDisplay = document.getElementById('absent-letters-display'); // NEW
+const ellipsisMenuButton = document.getElementById('ellipsis-menu-button');
+const ellipsisMenuContainer = document.getElementById('ellipsis-menu-container');
 
+if (ellipsisMenuButton && ellipsisMenuContainer) {
+    ellipsisMenuButton.addEventListener('click', (event) => {
+        // Toggle the visibility class
+        const isVisible = ellipsisMenuContainer.classList.toggle('is-visible');
+        ellipsisMenuContainer.classList.toggle('menu-hidden', !isVisible);
+        
+        // Optional: Add ARIA attribute for accessibility
+        event.currentTarget.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
 
+        // Prevent this click from immediately triggering the 'click outside' listener
+        event.stopPropagation(); 
+    });
+
+    // Close menu if clicked outside
+    document.addEventListener('click', (event) => {
+        // Check if the menu is visible and the click was NOT on the button or inside the menu
+        if (ellipsisMenuContainer.classList.contains('is-visible') &&
+            !ellipsisMenuButton.contains(event.target) &&
+            !ellipsisMenuContainer.contains(event.target)) {
+            
+            ellipsisMenuContainer.classList.remove('is-visible');
+            ellipsisMenuContainer.classList.add('menu-hidden');
+            ellipsisMenuButton.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // Optional: Close menu if Escape key is pressed
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && ellipsisMenuContainer.classList.contains('is-visible')) {
+            ellipsisMenuContainer.classList.remove('is-visible');
+            ellipsisMenuContainer.classList.add('menu-hidden');
+            ellipsisMenuButton.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+}
 
 
 //Add Group elements
@@ -188,7 +217,7 @@ async function loadWordList() {
 }
 
 function disableGame() {
-    restartButton.disabled = true;
+    //restartButton.disabled = true;
     //Also disable keyboard input
     document.removeEventListener('keydown', handleKeyDown);
 }
@@ -235,16 +264,11 @@ loadWordList().then(() => {
             signOutButton.style.display = 'block';
             signInButton.style.display = 'none';
             gameContainer.style.display = 'block';
-            restartButton.style.display = "block";
+            //restartButton.style.display = "block";
             scoresButton.style.display = "block";
 
             groupCreationDiv.style.display = "block"; // SHOW the group creation UI
             invitationsButton.style.display = "block"; // Show invitations button
-
-
-         /*   restartGame().then(() => {
-                document.addEventListener('keydown', handleKeyDown);
-            }); */
 
             await restartGame(); //Await restart to check play status
             checkInvite();
@@ -258,7 +282,7 @@ loadWordList().then(() => {
             userPhotoImg.style.display = 'none';
             userNameSpan.textContent = '';
             gameContainer.style.display = 'none';
-            restartButton.style.display = "none";
+            //restartButton.style.display = "none";
             scoresButton.style.display = "none";
             scoresContainer.style.display = 'none';
             document.removeEventListener('keydown', handleKeyDown);
@@ -268,7 +292,20 @@ loadWordList().then(() => {
             disableGameInput(); // Ensure input is disabled on logout
         }
     });
-});
+
+    // --- ADD Focus Trigger FOR MOBILE (AFTER Auth Setup) ---
+    if (guessesContainer && hiddenInput) {
+        // Use 'click' - mobile browsers often translate taps to clicks
+        guessesContainer.addEventListener('click', () => {
+            console.log("Game area clicked, focusing hidden input for mobile keyboard.");
+            hiddenInput.focus(); // Focus the hidden input
+        });
+        console.log("Added click listener to guessesContainer for mobile keyboard focus.");
+    } else {
+        console.error("Could not find guessesContainer or hiddenInput to attach mobile keyboard trigger.");
+    }
+    // --- END Focus Trigger ---
+    });
 
 
 //Open close sidebar
@@ -284,8 +321,6 @@ async function restartGame() {
     feedback.textContent = "";
     scoresContainer.style.display = 'none';
     teamScoresContainer.style.display = "none";
-    absentLetters = new Set(); // Reset the set
-    updateAbsentLettersDisplay(); // Clear the display
 
     createLetterBoxes();
 
@@ -330,7 +365,7 @@ async function restartGame() {
 }
 
 
-restartButton.addEventListener('click', restartGame);
+//restartButton.addEventListener('click', restartGame);
 
 
 // --- Helper Functions for Hiding Containers (Modified) ---
@@ -386,6 +421,7 @@ function createLetterBoxes() {
 
 
 function handleKeyDown(event) {
+    console.log("handleKeyDown fired! Key:", event.key, "Target:", event.target); // <-- ADD THIS FIRST LINE
     if (attempts >= maxAttempts) return; // Prevent input after game over
     if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
 
@@ -484,13 +520,7 @@ function deleteLetter() {
     // Apply colors
     result.forEach((letterInfo, index) => {
         boxes[index].classList.add(letterInfo.color);
-        // --- ADD Logic to track absent letters ---
-        if (letterInfo.color === 'gray') {
-            absentLetters.add(letterInfo.char.toLowerCase()); // Add lowercase version
-        }
     });
-
-    updateAbsentLettersDisplay(); // Update the display after guess
 
     attempts++; // Increment attempts *after* processing the guess
     if (guess === targetWord) {
@@ -513,7 +543,7 @@ function deleteLetter() {
 
 // --- Enable Game Input ---
 function enableGameInput() {
-    console.log("Enabling keyboard input");
+    console.log("Enabling keyboard input2");
     document.removeEventListener('keydown', handleKeyDown); // Remove first to prevent duplicates
     document.addEventListener('keydown', handleKeyDown);
 }
@@ -628,16 +658,6 @@ async function saveGameResults(isSuccessful) {
     //    console.log("Game results saved with ID:", docRef.id);
     } catch (error) {
         console.error("Error saving game results:", error);
-    }
-}
-
-// --- NEW: Function to update absent letters display ---
-function updateAbsentLettersDisplay() {
-    if (absentLettersDisplay) { // Check if element exists
-        const sortedAbsent = [...absentLetters].sort(); // Convert Set to array and sort
-        absentLettersDisplay.textContent = sortedAbsent.join(', ').toUpperCase(); // Join, uppercase
-    } else {
-        console.warn("Absent letters display element not found!");
     }
 }
 
@@ -944,174 +964,6 @@ function showTeamList() {
         });
 }
 
-/*
-// Function to display the scores for a single team
-function displaySingleTeamScores(groupId, groupName) {
-    currentDisplayMode = 'scores';
-    teamListContainer.style.display = 'none';
-    teamScoresContainer.style.display = 'block';
-    teamNameTitle.textContent = groupName + " Scores";
-    teamHistogramDiv.innerHTML = ''; // Clear previous histogram
-
-    if (!auth.currentUser) {
-        teamHistogramDiv.innerHTML = '<p>Please sign in to see team scores.</p>';
-        return;
-    }
-
-    const currentUserId = auth.currentUser.uid;
-
-    db.collection('groups').doc(groupId).get()
-        .then(groupDoc => {
-            if (!groupDoc.exists) {
-                teamHistogramDiv.innerHTML = '<p>Team not found.</p>';
-                return;
-            }
-            const groupMembers = groupDoc.data().members ||``;
-            const groupCreatedAtTimestamp = groupDoc.data().createdAt;
-            const groupCreatedAtDate = groupCreatedAtTimestamp ? groupCreatedAtTimestamp.toDate() : null;
-
-            if (!groupCreatedAtDate || groupMembers.length === 0) {
-                teamHistogramDiv.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
-                return;
-            }
-
-            return db.collection('games')
-                .where('userId', 'in', groupMembers)
-                .get()
-                .then(querySnapshot => {
-                    const userTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
-                    const otherTurnCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 'failed': 0 };
-                    let gamesSinceCreation = 0;
-                    let userGames = 0;
-                    let otherGames = 0;
-
-                    querySnapshot.forEach(doc => {
-                        const gameData = doc.data();
-                        const gameDateString = gameData.date;
-                        if (gameDateString) {
-                            const gameDate = new Date(gameDateString);
-                            if (gameDate >= groupCreatedAtDate) {
-                                gamesSinceCreation++;
-                                const turns = gameData.turns;
-                                const userId = gameData.userId;
-
-                                if (userId === currentUserId) {
-                                    if (userTurnCounts.hasOwnProperty(turns)) {
-                                        userTurnCounts[turns]++;
-                                        userGames++;
-                                    }
-                                } else {
-                                    if (otherTurnCounts.hasOwnProperty(turns)) {
-                                        otherTurnCounts[turns]++;
-                                        otherGames++;
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    if (gamesSinceCreation === 0) {
-                        teamHistogramDiv.innerHTML = `<p>No games played by members of ${groupName} since creation.</p>`;
-                        return;
-                    }
-
-                    const allTurnCounts = {};
-                    for (let i = 1; i <= 6; i++) {
-                        allTurnCounts[i] = userTurnCounts[i] + otherTurnCounts[i];
-                    }
-                    allTurnCounts['failed'] = userTurnCounts['failed'] + otherTurnCounts['failed'];
-
-                    let maxCount = Math.max(...Object.values(allTurnCounts));
-                    if (maxCount === 0) maxCount = 1; // Avoid division by zero
-
-                    const barsContainer = document.createElement('div');
-                    barsContainer.classList.add('bars-container');
-                    barsContainer.style.display = 'flex';
-                    barsContainer.style.justifyContent = 'space-around';
-                    barsContainer.style.alignItems = 'flex-end';
-                    barsContainer.style.height = '150px';
-                    barsContainer.style.padding = '0 10px';
-                    barsContainer.style.borderBottom = '2px solid black';
-
-                    const barWidth = `calc(100% / 18)`; // Roughly half the space for 7 categories
-
-                    for (let i = 1; i <= 6; i++) {
-                        const userBarHeight = (userTurnCounts[i] / maxCount) * 100;
-                        const userBar = document.createElement('div');
-                        userBar.classList.add('bar', 'user-bar');
-                        userBar.style.height = `${userBarHeight}%`;
-                        userBar.style.width = barWidth;
-                        userBar.style.marginRight = '1px'; // Space between user and other bar
-                        userBar.setAttribute('data-turns', i);
-                        const userBarLabel = document.createElement('span');
-                        userBarLabel.classList.add("bar-label");
-                        userBarLabel.style.top = '-20px'; // Ensure it's on top
-                        userBarLabel.textContent = userTurnCounts[i] > 0 ? userTurnCounts[i] : "";
-                        userBar.appendChild(userBarLabel);
-                        barsContainer.appendChild(userBar);
-
-                        const otherBarHeight = (otherTurnCounts[i] / maxCount) * 100;
-                        const otherBar = document.createElement('div');
-                        otherBar.classList.add('bar', 'other-bar');
-                        otherBar.style.height = `${otherBarHeight}%`;
-                        otherBar.style.width = barWidth;
-                        otherBar.style.marginRight = '3px'; // Space before next set
-                        otherBar.setAttribute('data-turns', i);
-                        const otherBarLabel = document.createElement('span');
-                        otherBarLabel.classList.add("bar-label");
-                        otherBarLabel.style.top = '-20px'; // Ensure it's on top
-                        otherBarLabel.textContent = otherTurnCounts[i] > 0 ? otherTurnCounts[i] : "";
-                        otherBar.appendChild(otherBarLabel);
-                        barsContainer.appendChild(otherBar);
-                    }
-
-                    // For 'failed'
-                    const userFailBarHeight = (userTurnCounts['failed'] / maxCount) * 100;
-                    const userFailBar = document.createElement('div');
-                    userFailBar.classList.add('bar', 'user-bar');
-                    userFailBar.style.height = `${userFailBarHeight}%`;
-                    userFailBar.style.width = barWidth;
-                    userFailBar.style.marginRight = '1px';
-                    userFailBar.setAttribute('data-turns', 'failed');
-                    const userFailBarLabel = document.createElement('span');
-                    userFailBarLabel.classList.add("bar-label");
-                    userFailBarLabel.style.top = '-20px';
-                    userFailBarLabel.textContent = userTurnCounts['failed'] > 0 ? userTurnCounts['failed'] : "";
-                    userFailBar.appendChild(userFailBarLabel);
-                    barsContainer.appendChild(userFailBar);
-
-                    const otherFailBarHeight = (otherTurnCounts['failed'] / maxCount) * 100;
-                    const otherFailBar = document.createElement('div');
-                    otherFailBar.classList.add('bar', 'other-bar');
-                    otherFailBar.style.height = `${otherFailBarHeight}%`;
-                    otherFailBar.style.width = barWidth;
-                    otherFailBar.style.marginRight = '3px';
-                    otherFailBar.setAttribute('data-turns', 'failed');
-                    const otherFailBarLabel = document.createElement('span');
-                    otherFailBarLabel.classList.add("bar-label");
-                    otherFailBarLabel.style.top = '-20px';
-                    otherFailBarLabel.textContent = otherTurnCounts['failed'] > 0 ? otherTurnCounts['failed'] : "";
-                    otherFailBar.appendChild(otherFailBarLabel);
-                    barsContainer.appendChild(otherFailBar);
-
-                    teamHistogramDiv.appendChild(barsContainer);
-
-                    // Add a legend
-                    const legend = document.createElement('div');
-                    legend.style.marginTop = '10px';
-                    legend.innerHTML = `
-                        <span style="display: inline-block; width: 10px; height: 10px; background-color: blue; margin-right: 5px;"></span>Your Scores
-                        <span style="display: inline-block; width: 10px; height: 10px; background-color: gray; margin-left: 10px; margin-right: 5px;"></span>Team Scores
-                    `;
-                    teamHistogramDiv.appendChild(legend);
-                });
-        })
-        .catch(error => {
-            console.error("Error fetching team scores:", error);
-            teamHistogramDiv.innerHTML = '<p>Error loading team scores.</p>';
-        });
-}
-*/
 
 async function displaySingleTeamScores(groupId, groupName) {
     currentDisplayMode = 'scores'; // Set display mode
