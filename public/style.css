@@ -582,10 +582,9 @@ header h1 {
     background-color: #4cae4c;
 }
 
-
-
 #absent-letters-container {
     margin-top: 20px;
+    margin-bottom: 20px;
     font-size: 0.9em;
     color: #555;
     text-align: center; /* Center the text */

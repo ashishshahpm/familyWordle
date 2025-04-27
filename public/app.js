@@ -410,9 +410,10 @@ function createLetterBoxes() {
 
 function handleKeyDown(event) {
     if (attempts >= maxAttempts) return; // Prevent input after game over
-    if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
+   // if (sidebar.classList.contains('open')) return; //If sidebar is open, don't allow
 
     const key = event.key.toLowerCase();
+    console.log("Key pressed:", key, "Code:", event.code); // Crucial log
     const target = event.target; // Get the element where the key press happened
     const groupNameInput = document.getElementById('group-name'); // Get the group name input field
     const invitedEmailsInput = document.getElementById('invited-member-email2'); // Get the add members input field
@@ -429,8 +430,6 @@ function handleKeyDown(event) {
         // We are relying on the 'input' event for letters from virtual keyboard
         return; // Let the 'input' event handle letters from virtual keyboard
     }
-
-
     if (key === 'enter') {
         submitGuess();
     } else if (key === 'backspace') {
