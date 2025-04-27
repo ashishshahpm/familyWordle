@@ -100,16 +100,19 @@ const createGroupButton = document.getElementById('create-group-button'); // NEW
 //Add scores elements
 const scoresContainer = document.getElementById('scores-container');
 const scoresButton = document.getElementById('scores-button');
-const closeScoresButton = document.getElementById('close-scores-button');
+const closeScoresX = document.getElementById('close-scores-x'); // NEW
+
 const histogramContainer = document.getElementById('histogram');
 
 //Add team elements
 const teamScoresContainer = document.getElementById('team-scores-container');
 const teamScoresButton = document.getElementById('team-scores-button');
-const closeTeamScoresButton = document.getElementById('close-team-scores-button');
+const closeTeamScoresX = document.getElementById('close-team-scores-x');
+
 const teamListContainer = document.getElementById('team-list-container');
 const teamList = document.getElementById('team-list');
-const closeTeamListButton = document.getElementById('close-team-list-button');
+const closeTeamListX = document.getElementById('close-team-list-x');
+
 const teamNameTitle = document.getElementById('team-name-title');
 const backToTeamListButton = document.getElementById('back-to-team-list-button');
 const teamHistogramContainer = document.getElementById('team-histogram');
@@ -383,7 +386,7 @@ scoresButton.addEventListener('click', () => {
 
 });
 
-closeScoresButton.addEventListener('click', () => {
+closeScoresX.addEventListener('click', () => {
     scoresContainer.style.display = 'none';
     gameContainer.style.display = "block";
 })
@@ -1234,9 +1237,9 @@ async function displayInvitations() {
 
 // Event listeners
 teamScoresButton.addEventListener('click', showTeamList);
-closeTeamListButton.addEventListener('click', () => teamListContainer.style.display = 'none');
+closeTeamListX.addEventListener('click', () => teamListContainer.style.display = 'none');
 backToTeamListButton.addEventListener('click', showTeamList);
-closeTeamScoresButton.addEventListener('click', () => {
+closeTeamScoresX.addEventListener('click', () => {
     if (currentDisplayMode === 'scores') {
         showTeamList(); // Go back to the list if showing scores
     } else {

@@ -185,23 +185,6 @@ header h1 {
     box-sizing: border-box;
     text-transform: uppercase;
 }
-#restart-button{
-    display: block;
-    margin: 10px 0;
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #008CBA;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    width: 100%; /* Full width within the sidebar */
-}
-
-#restart-button {
-    display: none; /* Hide by default, show when logged in */
-}
-
 
 /* Colors */
 .green {
@@ -225,12 +208,15 @@ header h1 {
 /* Feedback */
 #feedback {
     min-height: 24px;
-    margin-top: 10px;
+    margin-top: 20px;
+    margin-bottom: 20px;
     font-style: italic;
 }
 
 /* Team Scores Container */
-#team-scores-container {
+#scores-container,
+#team-scores-container,
+#team-list-container {
     display: none; /* Hidden by default */
     position: fixed;
     top: 50%;
@@ -248,24 +234,36 @@ header h1 {
     overflow-y: auto;
     text-align: center;
 }
-/* Scores Container */
-#scores-container {
-    display: none; /* Hidden by default */
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #f8f8f8;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    width: 80%;
-    max-width: 95%; /* Still keep a reasonable max-width */
-    max-height: 90%;
-    overflow-y: auto;
-    text-align: center;
+
+/* Heading inside the scores container */
+#scores-container h2,
+#team-scores-container h2,
+#team-list-container h2, /* Added for consistency */
+#invitations-container h2 { /* Added for consistency */
+    margin-top: 10px; /* Or 0 if close button is very close */
+    margin-bottom: 25px;
+    color: #333;
+    text-align: center; /* Ensure it's centered */
+    padding-right: 30px; /* Add padding to prevent overlap with close button */
+    padding-left: 30px;  /* Balance padding if title is long */
+    box-sizing: border-box;
+}
+
+/* Close "X" Button Styling (This should already be in your CSS) */
+.close-x {
+    position: absolute;
+    top: 10px;       /* Adjust for vertical alignment with title */
+    right: 15px;      /* Distance from the right edge */
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #888;
+    line-height: 1;   /* Helps with vertical centering of the 'X' character */
+    z-index: 1001;    /* Ensure it's on top of other content within the container */
+}
+
+.close-x:hover {
+    color: #333;
 }
 
 #scores-list {
@@ -277,19 +275,6 @@ header h1 {
 #scores-list li {
     padding: 10px;
     border-bottom: 1px solid #eee;
-}
-
-#close-scores-button{
-    display: block;
-    margin: auto;
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #008CBA;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    width: 50%;
 }
 
 /* Close button for team scores */
@@ -523,13 +508,6 @@ header h1 {
     max-height: 90%;
     overflow-y: auto;
     text-align: left; /* Align list items left */
-}
-
-#invitations-container h2 {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    text-align: center; /* Center title */
-    color: #333;
 }
 
 #invitations-list {

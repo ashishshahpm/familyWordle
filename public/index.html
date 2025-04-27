@@ -40,9 +40,9 @@
         </div>
 
         <div id="team-scores-container">
-            <h2 id="team-name-title">Team Scores</h2>
+            <div id="close-team-scores-x" class="close-x">X</div> <h2 id="team-name-title">Team Scores</h2>
             <div id="team-histogram-wrapper">
-                <div id="team-histogram"></div>
+                <div class="y-axis-label">Number of Games</div> <div id="team-histogram"></div>
                 <div id="x-axis-labels">
                     <span>1</span>
                     <span>2</span>
@@ -54,12 +54,12 @@
                 </div>
             </div>
             <button id="back-to-team-list-button">Back to Teams</button>
-            <button id="close-team-scores-button">Close</button>
         </div>
         
         <div id="scores-container">
-            <h2>Previous Scores</h2>
+            <div id="close-scores-x" class="close-x">X</div> <h2>Previous Scores</h2>
             <div id="histogram-wrapper">
+                <div class="y-axis-label">Number of Games</div>
                 <div id="histogram"></div>
                 <div id="x-axis-labels">
                     <span>1</span>
@@ -71,14 +71,13 @@
                     <span>Fail</span>
                 </div>
             </div>
-             <button id="close-scores-button">Close</button>
         </div>
 
         <div id="team-list-container">
             <h2>Your Teams</h2>
+            <div id="close-team-list-x" class="close-x">X</div>
             <ul id="team-list">
                 </ul>
-            <button id="close-team-list-button">Close</button>
         </div>
 
         <div id="invitations-container" style="display: none;">
@@ -90,7 +89,6 @@
         
 
         <div id="group-creation" style="display: none;">
-            <h2>Create a Group</h2>
             <input type="text" id="group-name" placeholder="Group Name">
             <input type = "email" id = "invited-member-email2" placeholder = "abc@example.com">
             <button id="create-group-button">Create Group</button>
