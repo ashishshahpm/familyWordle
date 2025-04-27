@@ -337,7 +337,7 @@ header h1 {
     display: grid; /* Use Grid */
     grid-template-columns: repeat(14, 1fr); /* 14 columns for team pairs */
     /* gap: 2px; /* Smaller gap for paired bars */
-    column-gap: 1px;
+    column-gap: 2px;
     row-gap: 0;
     width: 100%;
     height: 180px; /* Fixed height */
@@ -370,13 +370,13 @@ header h1 {
 /* Specific Bar Colors for Team Scores */
 #team-histogram .user-bar { /* More specific selector */
     background-color: steelblue; /* Your color */
-    margin-left: 40px;
+    /* margin-left: 40px; */
 
 }
 
 #team-histogram .other-bar { /* More specific selector */
     background-color: lightgray; /* Team color */
-    margin-right: 40px;
+    margin-right: 6px;
 }
 
 /* Remove right margin from the very last bar in the grid */
@@ -387,12 +387,12 @@ header h1 {
 /* Failed Bar Colors (More Specific) */
 #team-histogram .bar[data-turns="failed"].user-bar {
     background-color: firebrick;
-    margin-left: 40px;
+    /* margin-left: 40px; */
 
 }
 #team-histogram .bar[data-turns="failed"].other-bar {
     background-color: #f5c6cb; /* Lighter red */
-    margin-right: 40px;
+   /* margin-right: 40px; */
 }
 
 
